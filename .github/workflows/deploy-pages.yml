@@ -11,10 +11,10 @@ name: Deploy client to GitHub Pages
 # is why they are repository VARIABLES rather than secrets:
 #
 #   Settings > Secrets and variables > Actions > Variables
-#     VITE_USE_MOCK_API   "false" once your Express API is deployed. Anything
+#     VITE_DEMO_MODE      "false" once your Express API is deployed. Anything
 #                         else, including leaving it unset, keeps the simulated
 #                         backend on, which is the safe default for a template.
-#     VITE_API_BASE_URL   https://your-api.onrender.com   (no trailing slash)
+#     VITE_API_BASE_URL   https://your-api.onrender.com/api
 #
 # Never put an API key, a password or a database URL in a VITE_ variable. Those
 # belong in your SERVER's environment, and the server is not built here. See
@@ -85,7 +85,7 @@ jobs:
           # blank white page. Reading the name from the event means this keeps
           # working if you rename the repository.
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
-          VITE_USE_MOCK_API: ${{ vars.VITE_USE_MOCK_API }}
+          VITE_DEMO_MODE: ${{ vars.VITE_DEMO_MODE }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         # npm run build also copies index.html to 404.html. GitHub Pages serves
         # 404.html for any path it cannot find, which is how a single-page app

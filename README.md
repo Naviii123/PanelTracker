@@ -1,174 +1,272 @@
-# Your Project Name
+# PanelTracker
 
-> **Replace this whole file.** It is a worked example of the README your project
-> will be graded from, not a file to leave as it is. Start with
-> [START-HERE.md](START-HERE.md).
+PanelTracker is a full-stack web application for discovering, organizing, and tracking manga, manhwa, and manhua. It gives readers one private place to search the AniList catalog, save titles, record chapter progress, choose a reading status, add a personal rating, and review collection statistics.
 
-One sentence saying what this does and who it is for.
+The application is designed for readers who want a tracking and organization tool rather than an online reading service. It does not host manga chapters or scrape manga websites.
 
-**Live site:** https://yourusername.github.io/your-repo-name/
-**API:** https://your-api.onrender.com/healthz
-**Demo video:** (link)
+## Setup and installation
 
-> **This deployment is running in demo mode.** The interface is real; the backend
-> is simulated in your browser so the site works without a server. See
-> [Demo mode](#demo-mode) below. Delete this quote once your API is live.
+### Requirements
 
-![A screenshot of the main screen](docs/assets/screenshot.png)
+Install these before starting:
 
-## What it does
+- Node.js 20 or newer
+- npm, included with Node.js
+- Git, if cloning the repository
+- A Supabase project with PostgreSQL access for the real full-stack mode
 
-- Report a sighting with a place, a description and a spookiness rating
-- Browse everything reported, newest first
-- Delete a report
+Demo mode only requires Node.js and npm. It does not require Supabase, PostgreSQL, or the Express server.
 
-## Built with
+### Get the code
 
-React and Vite on the front end, Express and PostgreSQL on the back end. The
-client is on GitHub Pages, the API on (host), the database on (host).
+```powershell
+git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
+cd PanelTracker
+```
 
-## Demo mode
+Replace the placeholder repository URL with the actual repository URL.
 
-This repository can run two ways, chosen by one environment variable at **build**
-time.
+### Install dependencies
 
-**Demo mode is the default.** Only the exact string `false` turns it off, so a
-forgotten or mistyped variable leaves you on the simulated backend with a visible
-notice rather than on a silently broken build.
+Install backend dependencies:
 
-| `VITE_USE_MOCK_API` | What happens |
-| --- | --- |
-| unset, or `true` | The client answers its own requests from `localStorage`. No server, no database, nothing shared between visitors. This is what the template ships with, so the GitHub Pages link works on day one. |
-| `false` | The client calls the Express API at `VITE_API_BASE_URL`, which reads and writes real PostgreSQL. |
+```powershell
+cd server
+npm install
+```
 
-**Demo mode is a starting point and a fallback, not a finished project.** Your
-finals submission is all three pieces deployed and talking to each other. Demo
-mode is there so you can build the interface in week one before the API exists,
-and so you have something to show if a free tier is asleep during your demo.
+Install frontend dependencies in a second terminal:
 
-GitHub Pages serves files and cannot run Node, so the API and the database can
-never live there. They go somewhere else:
+```powershell
+cd client
+npm install
+```
 
-| Piece | Options |
-| --- | --- |
-| **API** | Render, Railway, Fly.io, Koyeb, a VPS, or [self-hosted behind a tunnel](../content/extending-your-app/11-self-hosting.md) |
-| **Database** | Neon, Supabase, Railway, Aiven, or your own PostgreSQL |
+### Environment configuration
 
-`content/extending-your-app/` in your course workspace walks through all of it.
-Page 10 is the decision page if you do not know which to pick.
+Environment files contain local configuration and must not be committed. The repository includes safe templates named `.env.example`.
 
-## Running it yourself
+Create the backend environment file:
 
-**The client only, in demo mode.** No database needed.
+```powershell
+cd server
+Copy-Item .env.example .env
+```
 
-    cd client
-    npm install
-    cp .env.example .env        # VITE_USE_MOCK_API stays true
-    npm run dev                 # http://localhost:5173
+Edit `server/.env`:
 
-**The whole stack.** Needs a PostgreSQL, either local or hosted.
+```env
+DATABASE_URL=postgresql://user:password@host:5432/database
+JWT_SECRET=replace_with_a_long_random_secret
+JWT_REFRESH_SECRET=replace_with_another_long_random_secret
+CORS_ORIGINS=http://localhost:5173
+PORT=5000
+```
 
-    # 1. the database
-    docker run --name my-pg -e POSTGRES_PASSWORD=devpassword \
-      -e POSTGRES_DB=haunted -p 5432:5432 -d postgres:17
+Create the frontend environment file:
 
-    # 2. the API
-    cd server
-    npm install
-    cp .env.example .env        # check DATABASE_URL
-    npm run db:reset            # creates the tables and adds sample rows
-    npm run dev                 # http://localhost:3000
+```powershell
+cd client
+Copy-Item .env.example .env
+```
 
-    # 3. the client, in another terminal
-    cd client
-    npm install
-    cp .env.example .env
-    # set VITE_USE_MOCK_API=false
-    npm run dev
+For real API mode, edit `client/.env`:
 
-Check the API on its own before you blame the client:
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_DEMO_MODE=false
+```
 
-    curl http://localhost:3000/healthz     # is the process alive
-    curl http://localhost:3000/readyz      # is the database reachable
-    curl http://localhost:3000/api/sightings
+For demo mode, use:
 
-## Environment variables
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_DEMO_MODE=true
+```
 
-None of these are committed. `.env.example` in each folder lists them with
-placeholder values.
+`VITE_` variables are compiled into the browser and are public. Never place `DATABASE_URL`, `JWT_SECRET`, or `JWT_REFRESH_SECRET` in the client environment file.
 
-| Name | Where | What it is |
+### Supabase and database setup
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. Open **Project Settings > Database**.
+3. Open the Supabase **Connect** dialog and choose the **Session Pooler** connection string for the backend. The direct `db.<project-ref>.supabase.co:5432` connection is IPv6-only for many projects and may time out on local networks. The connection string belongs in `server/.env` as `DATABASE_URL`; it is not the same thing as the Supabase project URL.
+4. Run the schema from the `server` folder:
+
+```powershell
+cd server
+npm run db:schema
+```
+
+Alternatively, copy the contents of `server/db/schema.sql` into the Supabase SQL editor and run it.
+
+The schema creates these tables:
+
+- `users`: accounts and bcrypt password hashes
+- `manga`: shared AniList metadata keyed by `anilist_id`
+- `progress`: user-specific chapter, status, and rating records
+- `refresh_tokens`: hashed refresh tokens with expiry and revocation fields
+
+There is no required demo seed. Demo data is created in the browser only when `VITE_DEMO_MODE=true`.
+
+## How to run it
+
+### Demo mode
+
+Demo mode is the fastest way to view the interface without a database:
+
+```powershell
+cd client
+npm run dev
+```
+
+Open [http://localhost:5173/login](http://localhost:5173/login). Use any valid-looking email and any password. Registration also accepts demo values. The demo banner identifies the mode, and demo account/library data is stored in that browser's localStorage.
+
+Restart Vite after changing `.env` because Vite reads environment variables when it starts.
+
+### Real full-stack mode
+
+Start the Express API in one terminal:
+
+```powershell
+cd server
+npm run dev
+```
+
+Expected API output:
+
+```text
+PanelTracker API listening on port 5000
+```
+
+Check that the process is alive:
+
+```powershell
+curl http://localhost:5000/healthz
+```
+
+Check that PostgreSQL is reachable:
+
+```powershell
+curl http://localhost:5000/readyz
+```
+
+Then start the client in a second terminal:
+
+```powershell
+cd client
+npm run dev
+```
+
+Open [http://localhost:5173/login](http://localhost:5173/login). In real mode, registration and login use Express, passwords are hashed with bcrypt, and library data is stored in PostgreSQL.
+
+### Production build
+
+```powershell
+cd client
+npm run build
+npm run preview
+```
+
+The build is written to `client/dist`. Deploy that static output to a frontend host and deploy `server/` to a Node.js host. Set `VITE_API_BASE_URL` to the deployed API URL including `/api`, set `VITE_DEMO_MODE=false`, and add the deployed frontend origin to the server's `CORS_ORIGINS`.
+
+## Features and usage
+
+### Primary flow
+
+1. Open `/register` and create an account, or use demo mode with any valid-looking values.
+2. Sign in at `/login`.
+3. Use the dashboard search field to search AniList by title.
+4. Open a result at `/manga/:anilistId`.
+5. Review the title, cover, synopsis, genres, author, type, chapters, volumes, score, and publishing details.
+6. Add the title to the library with a status, current chapter, and optional rating from 1 to 10.
+7. Open `/library` to filter titles by `All`, `Reading`, `Completed`, `Plan to Read`, `On Hold`, or `Dropped`.
+8. Update progress, status, or rating from a library card or the series detail page.
+9. Open `/settings` to view account/app mode information, clear the current user's library, or log out.
+10. Use the dashboard to see tracked-title statistics, currently reading titles, genre counts, and recommendations.
+
+When AniList provides a chapter total, the detail form provides a bounded chapter selector and the backend rejects values above that total. When the total is unknown, the app uses a manual non-negative chapter input and displays `Chapter X / ?`.
+
+### Main REST API
+
+All application endpoints use the `/api` prefix. Protected endpoints require an access token in the `Authorization: Bearer <token>` header.
+
+| Method | Path | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | server | PostgreSQL connection string. Contains a password |
-| `CORS_ORIGINS` | server | comma-separated origins allowed to call the API |
-| `NODE_ENV` | server | `production` on your host |
-| `PORT` | server | **set by the host**, do not set it yourself |
-| `VITE_USE_MOCK_API` | client, at build time | only `false` turns demo mode off; unset means on |
-| `VITE_API_BASE_URL` | client, at build time | your API's public URL, no trailing slash |
+| `POST` | `/api/auth/register` | Validate and create a user, hash the password, and issue tokens |
+| `POST` | `/api/auth/login` | Authenticate by email/password and issue tokens |
+| `POST` | `/api/auth/refresh` | Rotate a valid refresh token and issue a new access token |
+| `POST` | `/api/auth/logout` | Revoke a stored refresh-token hash |
+| `GET` | `/api/auth/me` | Return the authenticated user |
+| `GET` | `/api/dashboard` | Return user statistics, tracking rows, genres, and recommendations |
+| `GET` | `/api/library` | Return only the authenticated user's library |
+| `GET` | `/api/library/:anilistId` | Return one library record belonging to the authenticated user |
+| `POST` | `/api/library` | Add or update a manga and its progress |
+| `PUT` | `/api/library/:anilistId` | Update chapter, status, or rating with ownership and total checks |
+| `DELETE` | `/api/library/:anilistId` | Remove one title from the authenticated user's library |
+| `DELETE` | `/api/library` | Clear all progress for the authenticated user only |
+| `GET` | `/api/manga/search?q=...` | Search AniList through the Express GraphQL service |
+| `GET` | `/api/manga/:anilistId` | Retrieve full manga details through Express/AniList |
+| `GET` | `/api/manga/:anilistId/recommendations` | Retrieve popular AniList manga as recommendations |
 
-Every `VITE_` value is compiled into the built JavaScript and is **public**.
-Never put a key, a password or a connection string in one.
-
-## Deploying
-
-**Client, to GitHub Pages.** Already wired up in
-`.github/workflows/deploy-pages.yml`. Two one-time steps:
-
-1. **Settings > Pages > Build and deployment > Source: GitHub Actions.** Without
-   this the workflow goes green and publishes nothing.
-2. Nothing else, until your API is live. Demo mode is the default, so the first
-   deploy works on its own. When the API is up, add `VITE_USE_MOCK_API` = `false`
-   and `VITE_API_BASE_URL` under **Settings > Secrets and variables > Actions >
-   Variables**, then re-run the workflow.
-
-The repository must be **public** for Pages to serve it on a free account.
-
-**API and database.** Not automated here, because most hosts deploy straight from
-your repository with no workflow at all. Point your host at the `server/` folder,
-set the environment variables in its dashboard, and run `server/db/schema.sql`
-once against the hosted database.
+Authentication routes use stricter rate limiting. Express-validator handles request validation, SQL uses parameters, and server errors return safe messages instead of stack traces.
 
 ## Project structure
 
-    client/          React front end, built by Vite
-      src/api/       ONE interface, two implementations, chosen by a variable
-      src/components/
-    server/          Express API
-      db/            pool, schema.sql, seed.sql, and a runner for them
-    compose.yml      only if you self-host
-    docs/            your planning documents and weekly reports
+```text
+PanelTracker/
+├── client/
+│   ├── public/assets/
+│   │   ├── images/          Auth artwork and reusable images
+│   │   ├── logo/            PanelTracker logo placeholder
+│   │   └── placeholders/    Fallback manga-cover artwork
+│   ├── src/
+│   │   ├── api/             Real API client and demo adapter logic
+│   │   ├── components/      App shell, shared UI, and demo notice
+│   │   ├── pages/           Auth, dashboard, library, detail, and settings
+│   │   ├── utils/           Progress validation helpers
+│   │   ├── App.jsx          Route composition
+│   │   └── styles.css       Shared design system and responsive layout
+│   ├── .env.example
+│   └── package.json
+├── server/
+│   ├── db/                 PostgreSQL pool, schema, and runner
+│   ├── anilistService.js    AniList GraphQL client and metadata mapping
+│   ├── server.js           Express routes, auth, validation, and errors
+│   ├── .env.example
+│   └── package.json
+├── docs/
+│   ├── assets/             Documentation screenshots
+│   ├── 03-design-system.md
+│   ├── 06-security-and-privacy.md
+│   └── REPORT.md
+├── AI-USAGE.md
+├── SECURITY-CHECKLIST.md
+└── README.md
+```
 
-## Architecture
+## Screenshots
 
-Three or four sentences, or a small diagram. Which piece talks to which, and
-where each one is hosted.
+The screenshot below shows the running authentication screen in demo mode:
 
-## What I would do next
+![PanelTracker sign-in screen](docs/assets/paneltracker-login.png)
 
-Three honest bullets. This paragraph is worth more than it looks.
+The visual direction follows the supplied PanelTracker design system: `#6366F1` primary actions, `#0F172A` ink, `#475569` muted text, `#F8FAFC` surfaces, `#E2E8F0` borders, Inter typography, and 8px spacing increments.
 
-## Author
+## Known issues and next steps
 
-Your name, and a link. Course and section.
+- The real Supabase flow cannot be fully exercised until a user supplies a valid local `DATABASE_URL` and runs the schema.
+- There are no automated frontend or backend test suites yet; verification currently uses production builds, syntax checks, and manual browser flows.
+- The Settings page is intentionally limited to account display, app-mode information, library clearing, and logout. Profile editing and password reset are future work.
+- The “Forgot password?” text is currently informational and has no reset workflow.
+- Search currently focuses on title text. Type and genre filters can be added later through AniList query variables.
+- Recommendations use a simple AniList popularity fallback rather than personalized ranking.
+- Demo mode is intentionally local to one browser and is not a substitute for production authentication or Supabase storage.
 
 ## AI use
 
-If you used AI while building this, say so here. Honest disclosure is the
-standard in this course and increasingly outside it, and reporting heavy use
-accurately costs you nothing.
+AI assistance was used for implementation, debugging, documentation, and UI cleanup. The current record is maintained in [AI-USAGE.md](AI-USAGE.md).
 
-This section is the last 10 points of the finals badge, and it wants three
-things:
+## License
 
-![Built with AI assistance](https://img.shields.io/badge/built%20with-AI%20assistance-0b5fff)
-
-- the badge above, or one you like better
-- a line naming which assistant you used and how much of the work it touched
-- a link to [AI-USAGE.md](AI-USAGE.md), where the full account lives
-
-Keep the detail in `AI-USAGE.md` rather than here. This section is the summary a
-visitor reads; that file is the record the badge is graded from.
-
-## Licence
-
-MIT, see [LICENSE](LICENSE). Put your own name in it.
+See [LICENSE](LICENSE).

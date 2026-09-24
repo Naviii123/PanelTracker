@@ -1,128 +1,60 @@
 import express from 'express'
 import cors from 'cors'
+import bcrypt from 'bcrypt'
+import crypto from 'node:crypto'
+import jwt from 'jsonwebtoken'
+import { body, param, query, validationResult } from 'express-validator'
+import rateLimit from 'express-rate-limit'
 import { pool } from './db/pool.js'
-import * as sightings from './sightingsRepo.js'
+import { getManga, searchManga, getRecommendations } from './anilistService.js'
 
 const app = express()
+const PORT = process.env.PORT || 5000
+const ACCESS_SECRET = process.env.JWT_SECRET
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET
 
-// CORS before the routes. Middleware registered after a route never sees that
-// route's requests, which is the m4 lesson showing up in production.
-//
-// Name your origins. app.use(cors()) with no options sends
-// Access-Control-Allow-Origin: *, which lets any site on the internet call this
-// API from a visitor's browser, and is incompatible with cookies.
-const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean)
-
-app.use(cors({ origin: allowedOrigins }))
-app.use(express.json({ limit: '100kb' }))
-
-// Is the process alive?
-app.get('/healthz', (request, response) => {
-  response.json({ ok: true })
-})
-
-// Is the database reachable? A different question, and the one that tells you
-// in two seconds which half of a problem you have.
-app.get('/readyz', async (request, response) => {
-  try {
-    await pool.query('SELECT 1')
-    response.json({ ok: true, db: 'up' })
-  } catch (error) {
-    console.error('readyz failed:', error.message)
-    response.status(503).json({ ok: false, db: 'down' })
-  }
-})
-
-// Validation lives on the server because the client can be bypassed. The
-// browser form is for a fast, friendly message; this is for correctness.
-function validate(body) {
-  const errors = []
-  const place = typeof body.place === 'string' ? body.place.trim() : ''
-  const description =
-    typeof body.description === 'string' ? body.description.trim() : ''
-  const spookiness = Number(body.spookiness)
-
-  if (!place) errors.push('place is required')
-  if (place.length > 120) errors.push('place must be 120 characters or fewer')
-  if (description.length > 2000) errors.push('description must be 2000 characters or fewer')
-  if (!Number.isInteger(spookiness) || spookiness < 1 || spookiness > 5) {
-    errors.push('spookiness must be a whole number from 1 to 5')
-  }
-
-  return { errors, value: { place, description, spookiness } }
+if (!ACCESS_SECRET || !REFRESH_SECRET) {
+	console.error('JWT_SECRET and JWT_REFRESH_SECRET must be set before starting the server.')
+	process.exit(1)
 }
+const statuses = ['Reading', 'Completed', 'Plan to Read', 'On Hold', 'Dropped']
+const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((value) => value.trim()).filter(Boolean)
+app.use(cors({ origin: origins }))
+app.use(express.json({ limit: '100kb' }))
+app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true }))
 
-app.get('/api/sightings', async (request, response, next) => {
-  try {
-    response.json(await sightings.getAll(pool))
-  } catch (error) {
-    next(error)
-  }
-})
+const validate = (request, response, next) => { const errors = validationResult(request); if (!errors.isEmpty()) return response.status(400).json({ error: errors.array()[0].msg }); next() }
+const tokens = (userId) => ({ accessToken: jwt.sign({ userId }, ACCESS_SECRET, { expiresIn: '15m' }), refreshToken: jwt.sign({ userId, nonce: crypto.randomUUID() }, REFRESH_SECRET, { expiresIn: '7d' }) })
+async function saveRefreshToken(userId, token) { const hash = crypto.createHash('sha256').update(token).digest('hex'); await pool.query("INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, now() + interval '7 days')", [userId, hash]) }
+function auth(request, response, next) { const token = request.headers.authorization?.replace('Bearer ', ''); if (!token) return response.status(401).json({ error: 'Authentication required.' }); try { request.user = jwt.verify(token, ACCESS_SECRET); next() } catch { response.status(401).json({ error: 'Your session has expired.' }) } }
+const userFields = [body('username').trim().isLength({ min: 3, max: 30 }).matches(/^[a-zA-Z0-9_]+$/).withMessage('Username must be 3-30 letters, numbers, or underscores.'), body('email').isEmail().normalizeEmail().withMessage('Enter a valid email address.'), body('password').isLength({ min: 8, max: 72 }).withMessage('Password must be at least 8 characters.')]
+const anilistIdRule = param('anilistId').isInt({ min: 1 }).withMessage('anilistId must be a positive integer.')
 
-app.get('/api/sightings/:id', async (request, response, next) => {
-  try {
-    const row = await sightings.getById(pool, request.params.id)
-    if (!row) return response.status(404).json({ error: 'Not found' })
-    response.json(row)
-  } catch (error) {
-    next(error)
-  }
-})
+app.get('/healthz', (request, response) => response.json({ ok: true }))
+app.get('/readyz', async (request, response) => { try { await pool.query('SELECT 1'); response.json({ ok: true, db: 'up' }) } catch { response.status(503).json({ ok: false, db: 'down' }) } })
+app.post('/api/auth/register', userFields, validate, async (request, response, next) => { try { const { username, email, password } = request.body; const hash = await bcrypt.hash(password, 12); const result = await pool.query('INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email', [username, email, hash]); const authTokens = tokens(result.rows[0].id); await saveRefreshToken(result.rows[0].id, authTokens.refreshToken); response.status(201).json({ user: result.rows[0], ...authTokens }) } catch (error) { if (error.code === '23505') return response.status(409).json({ error: 'Username or email is already registered.' }); next(error) } })
+app.post('/api/auth/login', [body('email').isEmail().normalizeEmail(), body('password').isString().notEmpty()], validate, async (request, response, next) => { try { const result = await pool.query('SELECT id, username, email, password_hash FROM users WHERE email = $1', [request.body.email]); const user = result.rows[0]; if (!user || !(await bcrypt.compare(request.body.password, user.password_hash))) return response.status(401).json({ error: 'Email or password is incorrect.' }); const authTokens = tokens(user.id); await saveRefreshToken(user.id, authTokens.refreshToken); response.json({ user: { id: user.id, username: user.username, email: user.email }, ...authTokens }) } catch (error) { next(error) } })
+app.post('/api/auth/refresh', [body('refreshToken').isString().notEmpty()], validate, async (request, response, next) => { try { const payload = jwt.verify(request.body.refreshToken, REFRESH_SECRET); const hash = crypto.createHash('sha256').update(request.body.refreshToken).digest('hex'); const found = await pool.query('SELECT id FROM refresh_tokens WHERE user_id = $1 AND token_hash = $2 AND revoked_at IS NULL AND expires_at > now()', [payload.userId, hash]); if (!found.rowCount) return response.status(401).json({ error: 'Refresh token is invalid.' }); await pool.query('UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1', [found.rows[0].id]); const authTokens = tokens(payload.userId); await saveRefreshToken(payload.userId, authTokens.refreshToken); response.json(authTokens) } catch (error) { if (['JsonWebTokenError', 'TokenExpiredError'].includes(error.name)) return response.status(401).json({ error: 'Refresh token is invalid.' }); next(error) } })
+app.post('/api/auth/logout', async (request, response, next) => { try { if (request.body?.refreshToken) { const hash = crypto.createHash('sha256').update(request.body.refreshToken).digest('hex'); await pool.query('UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = $1', [hash]) } response.status(204).end() } catch (error) { next(error) } })
+app.get('/api/auth/me', auth, async (request, response, next) => { try { const result = await pool.query('SELECT id, username, email FROM users WHERE id = $1', [request.user.userId]); response.json(result.rows[0]) } catch (error) { next(error) } })
 
-app.post('/api/sightings', async (request, response, next) => {
-  const { errors, value } = validate(request.body ?? {})
-  if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
+function mangaPayload(manga) { return [manga.anilistId, manga.title, manga.coverUrl, manga.synopsis, JSON.stringify(manga.genres), JSON.stringify(manga)] }
+async function upsertManga(manga) { const result = await pool.query('INSERT INTO manga (anilist_id, title, cover_url, synopsis, genres, metadata) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (anilist_id) DO UPDATE SET title = EXCLUDED.title, cover_url = EXCLUDED.cover_url, synopsis = EXCLUDED.synopsis, genres = EXCLUDED.genres, metadata = EXCLUDED.metadata, updated_at = now() RETURNING id', mangaPayload(manga)); return result.rows[0].id }
+async function safeTopManga() { try { return await getRecommendations() } catch { return [] } }
+app.get('/api/manga/search', auth, [query('q').trim().isLength({ min: 2, max: 80 }), query('page').optional().isInt({ min: 1 }), query('perPage').optional().isInt({ min: 1, max: 50 })], validate, async (request, response) => { try { response.json(await searchManga(request.query.q, Number(request.query.page || 1), Number(request.query.perPage || 12))) } catch { response.status(502).json({ error: 'Unable to retrieve manga information right now.' }) } })
+app.get('/api/manga/:anilistId', auth, anilistIdRule, validate, async (request, response) => { try { response.json(await getManga(request.params.anilistId)) } catch { response.status(502).json({ error: 'Unable to retrieve manga information right now.' }) } })
+app.get('/api/manga/:anilistId/recommendations', auth, anilistIdRule, validate, async (request, response) => { try { response.json(await getRecommendations(request.params.anilistId)) } catch { response.json(await safeTopManga()) } })
 
-  try {
-    response.status(201).json(await sightings.create(pool, value))
-  } catch (error) {
-    next(error)
-  }
-})
+const librarySelect = 'm.anilist_id AS "anilistId", m.title, m.cover_url AS "coverUrl", m.synopsis, m.genres, m.metadata, m.metadata->>\'chapters\' AS "totalChapters", p.current_chapter AS "currentChapter", p.status, p.rating, p.last_updated AS "lastUpdated"'
+app.get('/api/library', auth, async (request, response, next) => { try { const result = await pool.query(`SELECT ${librarySelect} FROM progress p JOIN manga m ON m.id = p.manga_id WHERE p.user_id = $1 ORDER BY p.last_updated DESC`, [request.user.userId]); response.json(result.rows) } catch (error) { next(error) } })
+app.get('/api/library/:anilistId', auth, anilistIdRule, validate, async (request, response, next) => { try { const result = await pool.query(`SELECT ${librarySelect} FROM progress p JOIN manga m ON m.id = p.manga_id WHERE p.user_id = $1 AND m.anilist_id = $2`, [request.user.userId, request.params.anilistId]); if (!result.rowCount) return response.status(404).json({ error: 'Title is not in your library.' }); response.json(result.rows[0]) } catch (error) { next(error) } })
+app.get('/api/dashboard', auth, async (request, response, next) => { try { const rows = await pool.query(`SELECT ${librarySelect} FROM progress p JOIN manga m ON m.id = p.manga_id WHERE p.user_id = $1 ORDER BY p.last_updated DESC`, [request.user.userId]); const stats = { tracked: rows.rowCount }; statuses.forEach((status) => { stats[status] = rows.rows.filter((row) => row.status === status).length }); const genres = {}; rows.rows.forEach((row) => (row.genres || []).forEach((genre) => { genres[genre] = (genres[genre] || 0) + 1 })); response.json({ stats, tracking: rows.rows.filter((row) => row.status === 'Reading').slice(0, 5), genres: Object.entries(genres).sort((a, b) => b[1] - a[1]).slice(0, 5), recommendations: await safeTopManga() }) } catch (error) { next(error) } })
+const progressRules = [body('currentChapter').isFloat({ min: 0 }).withMessage('Chapter must be a non-negative number.'), body('status').isIn(statuses).withMessage('Invalid reading status.'), body('rating').optional({ nullable: true }).isInt({ min: 1, max: 10 }).withMessage('Rating must be between 1 and 10.')]
+app.post('/api/library', auth, [body('anilistId').isInt({ min: 1 }), body('manga').isObject(), ...progressRules], validate, async (request, response, next) => { try { const max = request.body.manga.chapters; if (max !== null && max !== undefined && Number(request.body.currentChapter) > Number(max)) return response.status(400).json({ error: `Current chapter cannot exceed ${max}.` }); const mangaId = await upsertManga(request.body.manga); const result = await pool.query('INSERT INTO progress (user_id, manga_id, current_chapter, status, rating) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id, manga_id) DO UPDATE SET current_chapter = EXCLUDED.current_chapter, status = EXCLUDED.status, rating = EXCLUDED.rating, last_updated = now() RETURNING *', [request.user.userId, mangaId, request.body.currentChapter, request.body.status, request.body.rating || null]); response.status(201).json(result.rows[0]) } catch (error) { next(error) } })
+app.put('/api/library/:anilistId', auth, [anilistIdRule, ...progressRules], validate, async (request, response, next) => { try { const saved = await pool.query('SELECT m.metadata->>\'chapters\' AS chapters FROM progress p JOIN manga m ON p.manga_id = m.id WHERE p.user_id = $1 AND m.anilist_id = $2', [request.user.userId, request.params.anilistId]); if (!saved.rowCount) return response.status(404).json({ error: 'Title is not in your library.' }); const max = saved.rows[0].chapters; if (max !== null && Number(request.body.currentChapter) > Number(max)) return response.status(400).json({ error: `Current chapter cannot exceed ${max}.` }); const result = await pool.query('UPDATE progress p SET current_chapter = $1, status = $2, rating = $3, last_updated = now() FROM manga m WHERE p.manga_id = m.id AND p.user_id = $4 AND m.anilist_id = $5 RETURNING p.*', [request.body.currentChapter, request.body.status, request.body.rating || null, request.user.userId, request.params.anilistId]); response.json(result.rows[0]) } catch (error) { next(error) } })
+app.delete('/api/library/:anilistId', auth, anilistIdRule, validate, async (request, response, next) => { try { await pool.query('DELETE FROM progress p USING manga m WHERE p.manga_id = m.id AND p.user_id = $1 AND m.anilist_id = $2', [request.user.userId, request.params.anilistId]); response.status(204).end() } catch (error) { next(error) } })
+app.delete('/api/library', auth, async (request, response, next) => { try { await pool.query('DELETE FROM progress WHERE user_id = $1', [request.user.userId]); response.status(204).end() } catch (error) { next(error) } })
 
-app.put('/api/sightings/:id', async (request, response, next) => {
-  const { errors, value } = validate(request.body ?? {})
-  if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
-
-  try {
-    const row = await sightings.update(pool, request.params.id, value)
-    if (!row) return response.status(404).json({ error: 'Not found' })
-    response.json(row)
-  } catch (error) {
-    next(error)
-  }
-})
-
-app.delete('/api/sightings/:id', async (request, response, next) => {
-  try {
-    const removed = await sightings.remove(pool, request.params.id)
-    if (!removed) return response.status(404).json({ error: 'Not found' })
-    response.status(204).end()
-  } catch (error) {
-    next(error)
-  }
-})
-
-app.use((request, response) => {
-  response.status(404).json({ error: 'No such route' })
-})
-
-// The detail goes in your logs; the visitor gets a plain message. Sending a
-// stack trace to a stranger tells them about your file layout and dependencies.
-app.use((error, request, response, next) => {
-  console.error(error)
-  response.status(500).json({ error: 'Something went wrong on the server' })
-})
-
-// The host chooses the port and tells you through PORT. Hardcoding 3000 is the
-// commonest reason a first deploy is marked unhealthy and killed.
-const port = process.env.PORT || 3000
-
-app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`)
-  console.log(`CORS allows: ${allowedOrigins.join(', ')}`)
-})
+app.use((request, response) => response.status(404).json({ error: 'No such route.' }))
+app.use((error, request, response, next) => { console.error(error); response.status(500).json({ error: 'Unable to complete that request.' }) })
+app.listen(PORT, () => console.log(`PanelTracker API listening on port ${PORT}`))
