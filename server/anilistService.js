@@ -25,6 +25,24 @@ function formatDate(date) {
   return [date.year, date.month, date.day].filter(Boolean).join('-')
 }
 
+function publicationStatus(status) {
+  const statuses = {
+    NOT_YET_RELEASED: 'Coming Soon',
+    RELEASING: 'Releasing',
+    FINISHED: 'Finished',
+    HIATUS: 'On Hiatus',
+    CANCELLED: 'Cancelled',
+  }
+  return statuses[status] || 'Unknown'
+}
+
+function plainDescription(description) {
+  return (description || 'No synopsis available.')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<\/p\s*>/gi, '\n\n')
+    .replace(/<[^>]*>/g, '')
+}
+
 export function normalizeAniListManga(media) {
   if (!media) return null
   const titles = [media.title?.english, media.title?.romaji, media.title?.native].filter(Boolean)
@@ -33,13 +51,13 @@ export function normalizeAniListManga(media) {
     title: titles[0] || 'Untitled manga',
     alternativeTitles: [...new Set(titles.slice(1))],
     coverUrl: media.coverImage?.extraLarge || media.coverImage?.large || '',
-    synopsis: media.description || 'No synopsis available.',
+    synopsis: plainDescription(media.description),
     genres: media.genres || [],
     authors: (media.staff?.edges || []).map((edge) => edge.node?.name?.full).filter(Boolean),
     type: media.format || 'Manga',
     chapters: media.chapters ?? null,
     volumes: media.volumes ?? null,
-    status: media.status || 'Unknown',
+    status: publicationStatus(media.status),
     score: media.averageScore ? media.averageScore / 10 : null,
     startDate: formatDate(media.startDate),
     endDate: formatDate(media.endDate),

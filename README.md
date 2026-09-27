@@ -1,6 +1,6 @@
 # PanelTracker
 
-PanelTracker is a full-stack web application for discovering, organizing, and tracking manga, manhwa, and manhua. It gives readers one private place to search the AniList catalog, save titles, record chapter progress, choose a reading status, add a personal rating, and review collection statistics.
+PanelTracker is a full-stack web application for discovering, organizing, and tracking manga, manhwa, and manhua. It gives readers one private place to search the AniList catalog, save titles, record chapter progress, choose a reading status, add a personal rating, and review collection statistics. The interface follows the supplied PanelTracker HIFI design system, supports persistent light/dark appearance, and distinguishes titles that are Coming Soon or Releasing.
 
 The application is designed for readers who want a tracking and organization tool rather than an online reading service. It does not host manga chapters or scrape manga websites.
 
@@ -180,12 +180,12 @@ The build is written to `client/dist`. Deploy that static output to a frontend h
 4. Open a result at `/manga/:anilistId`.
 5. Review the title, cover, synopsis, genres, author, type, chapters, volumes, score, and publishing details.
 6. Add the title to the library with a status, current chapter, and optional rating from 1 to 10.
-7. Open `/library` to filter titles by `All`, `Reading`, `Completed`, `Plan to Read`, `On Hold`, or `Dropped`.
+7. Open `/library` to search saved titles and filter by status. Statuses include `Coming Soon`, `Releasing`, `Reading`, `Completed`, `Plan to Read`, `On Hold`, and `Dropped`.
 8. Update progress, status, or rating from a library card or the series detail page.
-9. Open `/settings` to view account/app mode information, clear the current user's library, or log out.
+9. Open `/settings` to switch between light and dark appearance, view account/app mode information, clear the current user's library, or log out.
 10. Use the dashboard to see tracked-title statistics, currently reading titles, genre counts, and recommendations.
 
-When AniList provides a chapter total, the detail form provides a bounded chapter selector and the backend rejects values above that total. When the total is unknown, the app uses a manual non-negative chapter input and displays `Chapter X / ?`.
+The dashboard date is generated from the current local date. The selected light/dark appearance is saved in localStorage. AniList publication states map to `Coming Soon` and `Releasing` when appropriate. When AniList provides a chapter total, the detail form provides a bounded chapter selector and the backend rejects values above that total. When the total is unknown, the app uses a manual non-negative chapter input and displays `Chapter X / ?`; this remains available for Releasing titles.
 
 ### Main REST API
 

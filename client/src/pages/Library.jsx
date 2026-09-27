@@ -11,6 +11,8 @@ function LibraryCard({ item, onChange }) {
   const [status, setStatus] = useState(item.status)
   const [rating, setRating] = useState(item.rating || '')
   const [error, setError] = useState('')
+  const total = chapterLimit(item)
+  const progress = total ? Math.min(100, Number(item.currentChapter) / total * 100) : null
 
   async function save() {
     const chapterValidation = chapterError(item, chapter)
@@ -36,8 +38,10 @@ function LibraryCard({ item, onChange }) {
     <article className="library-card">
       <Link to={`/manga/${item.anilistId}`}><img src={getCover(item)} alt="" /></Link>
       <div className="card-body">
-        <span className="eyebrow">{item.status}</span>
-        <h3>{item.title}</h3>
+        <div className="library-title-cell">
+          <span className={`status-chip status-${item.status.toLowerCase().replaceAll(' ', '-')}`}>{item.status}</span>
+          <h3>{item.title}</h3>
+        </div>
         {editing ? (
           <div className="edit-fields">
             <label>Chapter<input type="number" min="0" max={chapterLimit(item) ?? undefined} value={chapter} onChange={(event) => { setChapter(event.target.value); setError('') }} /></label>
@@ -48,7 +52,11 @@ function LibraryCard({ item, onChange }) {
           </div>
         ) : (
           <>
-            <p>Chapter {item.currentChapter} {item.totalChapters ? `/ ${item.totalChapters}` : '/ ?'}</p>
+            <div className="library-row-progress">
+              <div className="library-row-chapter">Chapter {item.currentChapter} {total ? `/ ${total}` : '/ ?'}</div>
+              <div className="library-progress-track" aria-label={progress === null ? 'Total chapters unknown' : `${Math.round(progress)} percent complete`}><i style={{ width: `${progress ?? 0}%` }} /></div>
+              <small className="library-progress-label">{progress === null ? item.metadata?.status === 'Releasing' ? 'Releasing · total unknown' : 'Total unknown' : `${Math.round(progress)}% complete`}</small>
+            </div>
             <span className="rating">{item.rating ? `★ ${item.rating}/10` : 'Not rated'}</span>
             <button className="text-button" onClick={() => setEditing(true)}>Update progress</button>
           </>
@@ -62,6 +70,7 @@ function LibraryCard({ item, onChange }) {
 export default function Library() {
   const [items, setItems] = useState(null)
   const [tab, setTab] = useState('All')
+  const [filter, setFilter] = useState('')
   const [error, setError] = useState('')
 
   function reload() {
@@ -78,12 +87,13 @@ export default function Library() {
   }
 
   if (!items) return <Loading error={error} />
-  const visibleItems = items.filter((item) => tab === 'All' || item.status === tab)
+  const visibleItems = items.filter((item) => (tab === 'All' || item.status === tab) && item.title.toLowerCase().includes(filter.trim().toLowerCase()))
 
   return (
     <>
-      <PageHeader eyebrow="YOUR COLLECTION" title="My library" action={<button className="button button-danger" onClick={handleClear}>Clear my library</button>} />
-      <div className="tabs">{['All', ...STATUSES].map((value) => <button className={tab === value ? 'active' : ''} key={value} onClick={() => setTab(value)}>{value}</button>)}</div>
+      <PageHeader eyebrow="YOUR COLLECTION" title="My library" action={<div className="header-actions"><Link className="button button-primary" to="/dashboard">Add title</Link><button className="button button-danger" onClick={handleClear}>Clear my library</button></div>} />
+      <label className="library-search"><span className="sr-only">Filter your library</span><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Search your library..." /></label>
+      <div className="tabs">{['All', ...STATUSES].map((value) => { const count = value === 'All' ? items.length : items.filter((item) => item.status === value).length; return <button className={tab === value ? 'active' : ''} key={value} onClick={() => setTab(value)}>{value}<span>{count}</span></button> })}</div>
       {error && <p className="error-message">{error}</p>}
       <div className="library-grid">{visibleItems.map((item) => <LibraryCard key={item.anilistId} item={item} onChange={reload} />)}</div>
       {!visibleItems.length && <EmptyState text="No titles here yet. Search the catalog to start your shelf." />}

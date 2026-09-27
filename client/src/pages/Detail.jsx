@@ -23,6 +23,8 @@ export default function Detail() {
         setChapter(existing.currentChapter)
         setStatus(existing.status)
         setRating(existing.rating || '')
+      } else if (details.status === 'Coming Soon' || details.status === 'Releasing') {
+        setStatus(details.status)
       }
     }).catch((caught) => setMessage(caught.message))
   }, [anilistId])
@@ -38,7 +40,7 @@ export default function Detail() {
 
     try {
       await addToLibrary(item, { currentChapter: chapter, status, rating: ratingValue })
-      setLibrary((current) => [...current.filter((row) => row.anilistId !== item.anilistId), { ...item, currentChapter: chapter, status, rating: ratingValue }])
+      setLibrary((current) => [...current.filter((row) => row.anilistId !== item.anilistId), { ...item, currentChapter: Number(chapter), status, rating: ratingValue, lastUpdated: new Date().toISOString() }])
       setProgressError('')
       setMessage('Saved to your library.')
     } catch (caught) {
@@ -58,7 +60,7 @@ export default function Detail() {
       <div className="detail-layout">
         <img className="detail-cover" src={getCover(item)} alt="" />
         <div className="detail-copy">
-          <span className="eyebrow">{item.type} / {item.status}</span>
+          <span className="eyebrow">{item.type} / <span className={`release-status ${item.status === 'Coming Soon' ? 'upcoming' : item.status === 'Releasing' ? 'releasing' : ''}`}>{item.status}</span></span>
           <h1>{item.title}</h1>
           {item.alternativeTitles?.length > 0 && <p className="alternative-titles">Also known as: {item.alternativeTitles.join(' · ')}</p>}
           <p className="synopsis">{item.synopsis}</p>
@@ -68,6 +70,9 @@ export default function Detail() {
             <span><b>Volumes</b>{item.volumes ?? '?'}</span>
             <span><b>Score</b>{item.score ?? '—'}</span>
             <span><b>Author</b>{item.authors?.[0] || 'Unknown'}</span>
+            <span><b>Release</b>{item.startDate || 'Unknown'}{item.endDate ? ` – ${item.endDate}` : ''}</span>
+            {item.countryOfOrigin && <span><b>Origin</b>{item.countryOfOrigin}</span>}
+            {item.siteUrl && <a className="anilist-link" href={item.siteUrl} target="_blank" rel="noreferrer">AniList ↗</a>}
           </div>
         </div>
       </div>
@@ -78,7 +83,7 @@ export default function Detail() {
           {existing && <div className="progress-summary"><span>Chapter {existing.currentChapter}</span><span>{existing.status}</span><span>{existing.rating ? `★ ${existing.rating}/10` : 'Not rated'}</span><span>{existing.lastUpdated ? new Date(existing.lastUpdated).toLocaleDateString() : 'Not updated'}</span></div>}
         </div>
         <div className="progress-form">
-          <label>Chapter{chapterLimit(item) !== null ? <select value={chapter} onChange={(event) => { setChapter(event.target.value); setProgressError('') }}>{Array.from({ length: chapterLimit(item) + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}</select> : <input type="number" min="0" value={chapter} onChange={(event) => { setChapter(event.target.value); setProgressError('') }} />}</label>
+          <label>Chapter{chapterLimit(item) !== null ? <select aria-label="Current chapter" value={chapter} onChange={(event) => { setChapter(event.target.value); setProgressError('') }}>{Array.from({ length: chapterLimit(item) + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}</select> : <><input aria-label="Current chapter" type="number" min="0" value={chapter} onChange={(event) => { setChapter(event.target.value); setProgressError('') }} /><small className="field-hint">Total chapters unknown. Enter your current chapter.</small></>}</label>
           <label>Status<select value={status} onChange={(event) => setStatus(event.target.value)}>{STATUSES.map((value) => <option key={value}>{value}</option>)}</select></label>
           <label>Rating<input type="number" min="1" max="10" placeholder="-" value={rating} onChange={(event) => { setRating(event.target.value); setProgressError('') }} /></label>
           <button className="button button-accent" onClick={save}>{existing ? 'Update progress' : 'Add to library'}</button>

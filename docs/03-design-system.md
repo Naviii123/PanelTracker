@@ -31,3 +31,12 @@ Say where these live: CSS custom properties, a Tailwind config, a theme object, 
 component library you configured. The template starts with custom properties in
 `client/src/styles.css`. Module 3 covered the alternatives; use the one you can
 defend.
+
+## Implemented appearance modes
+
+Light mode uses the approved tokens: Primary `#6366F1`, Ink `#0F172A`, Muted
+`#475569`, Surface `#F8FAFC`/white, and Border `#E2E8F0`. Dark mode changes the
+surface, text, border, and input tokens while retaining the indigo primary and
+existing component structure. Settings controls the active mode; the preference
+is saved in browser localStorage and applied through `data-theme` on the document
+root.

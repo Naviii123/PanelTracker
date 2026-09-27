@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-export const STATUSES = ['Reading', 'Completed', 'Plan to Read', 'On Hold', 'Dropped']
+export const STATUSES = ['Coming Soon', 'Releasing', 'Reading', 'Completed', 'Plan to Read', 'On Hold', 'Dropped']
 
 export function getCover(item) {
   return item.coverUrl || '/assets/placeholders/manga-cover-placeholder.svg'
@@ -42,7 +42,7 @@ export function EmptyState({ text }) {
     <div className="empty-state">
       <span aria-hidden="true">＋</span>
       <p>{text}</p>
-      <Link to="/dashboard#discover">Discover a title</Link>
+      <Link to="/dashboard">Find a title</Link>
     </div>
   )
 }

@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clearLibrary, currentUser, isDemo, logout } from '../api'
 import { PageHeader } from '../components/AppShell.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 
 export default function Settings() {
   const navigate = useNavigate()
   const user = currentUser()
+  const { theme, setTheme } = useTheme()
   const [message, setMessage] = useState('')
 
   async function handleClearLibrary() {
@@ -24,6 +26,15 @@ export default function Settings() {
       <PageHeader eyebrow="ACCOUNT" title="Settings" />
       {message && <p className="success-message settings-message">{message}</p>}
       <div className="settings-grid">
+        <section className="settings-section">
+          <span className="eyebrow">APPEARANCE</span>
+          <h2>Light or dark</h2>
+          <p className="settings-help">Choose the appearance used across PanelTracker. Your choice is saved on this device.</p>
+          <div className="appearance-control" role="group" aria-label="Appearance">
+            <button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><span className="appearance-swatch light-swatch" />Light</button>
+            <button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><span className="appearance-swatch dark-swatch" />Dark</button>
+          </div>
+        </section>
         <section className="settings-section">
           <span className="eyebrow">PROFILE</span>
           <h2>Your account</h2>

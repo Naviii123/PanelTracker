@@ -50,7 +50,7 @@ This checklist records what was checked in the repository. `No` means the item i
 
 | # | Check | Yes / No / N/A | Evidence |
 | --- | --- | --- | --- |
-| 23 | Input from the user is validated on the server, not only in the browser | Yes | `express-validator` validates auth, IDs, statuses, chapters, and ratings; database constraints provide an additional boundary. |
+| 23 | Input from the user is validated on the server, not only in the browser | Yes | `express-validator` validates auth, AniList IDs, seven library statuses, chapters, and ratings; database constraints provide an additional boundary. |
 | 24 | User-supplied text is escaped when rendered, so it cannot inject markup or script | Yes | React renders user and AniList text as text nodes and does not use `dangerouslySetInnerHTML`. |
 | 25 | Error responses do not expose stack traces, file paths or connection details | Yes | The centralized Express error handler logs details server-side and returns `Unable to complete that request.` to clients. |
 | 26 | CORS is not a wildcard on routes that change data | Yes | Express uses the comma-separated `CORS_ORIGINS` allowlist and does not call unrestricted `cors()`. |

@@ -54,6 +54,14 @@ The repository currently has one initial commit and the latest work is still unc
 - **What I kept, what I changed, and why:** I documented actual behavior and called out unfinished real-database testing, missing automated tests, and dependency audit findings instead of claiming the project was production-complete.
 - **Commit:** pending commit
 
+### 2026-09-27 - HIFI interaction and release-state pass
+
+- **Tool:** GitHub Copilot
+- **What I asked for:** Finish the dynamic date, remove inactive login options and duplicate navigation, implement persisted light/dark appearance, add Coming Soon/Releasing states, and improve chapter entry and wireframe controls.
+- **What it gave back:** A persistent theme provider, dynamic date, library search/count filters, AniList release-state mapping, expanded PostgreSQL status validation, and progress/status presentation improvements.
+- **What I kept, what I changed, and why:** I kept the established pages and API/database architecture. A browser test exposed that JavaScript converted a null chapter total to zero; I corrected the null handling and verified chapter 25 saves for a Releasing title with an unknown total.
+- **Commit:** pending commit
+
 ## 2. Where the AI got it wrong
 
 ### Case 1 - Jikan package version
@@ -77,6 +85,13 @@ The repository currently has one initial commit and the latest work is still unc
 - **What I did instead:** I added shared frontend validation, demo validation, backend validation against stored manga metadata, and visible error messages.
 - **Commit:** pending commit
 
+### Case 4 - Null chapter count interpreted as zero
+
+- **What it gave me:** A chapter validator that converted `manga.chapters` to a number before checking whether a total was known.
+- **What was wrong with it:** AniList returns `null` when the total is unknown, and `Number(null)` is `0`, which blocked valid manual progress for Releasing titles.
+- **What I did instead:** I check for null before numeric validation and verified chapter 25 could be saved with Releasing status and an unknown total.
+- **Commit:** pending commit
+
 ## 3. Who wrote what
 
 ### Written by me
@@ -87,8 +102,9 @@ I reviewed the requirements, supplied the wireframe and design system, selected 
 
 - `client/src/pages/`: React pages for auth, dashboard, library, series detail, and settings.
 - `client/src/utils/progress.js`: shared rules for known and unknown chapter totals.
+- `client/src/context/ThemeContext.jsx`: persistent light/dark appearance applied to the document theme.
 - `server/server.js`: Express authentication, protected routes, validation, and user-scoped queries.
 - `server/db/schema.sql`: PostgreSQL tables and constraints for accounts, manga, progress, and refresh tokens.
-- `server/jikanService.js`: the boundary between Express and the Jikan API.
+- `server/anilistService.js`: the boundary between Express and AniList GraphQL.
 
-I understand that the real application path is React -> Express -> PostgreSQL/Jikan, while demo mode is an explicitly selected localStorage fallback and must not be treated as production authentication.
+I understand that the real application path is React -> Express -> Supabase PostgreSQL/AniList GraphQL, while demo mode is an explicitly selected localStorage fallback and must not be treated as production authentication.

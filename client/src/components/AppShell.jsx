@@ -18,9 +18,8 @@ export function AppShell({ children }) {
           <img src="/assets/logo/paneltracker-logo-placeholder.svg" alt="PanelTracker" />
         </Link>
         <nav className="sidebar-nav" aria-label="Main navigation">
-          <NavLink to="/dashboard">Overview</NavLink>
+          <NavLink to="/dashboard" end>Overview</NavLink>
           <NavLink to="/library">My library</NavLink>
-          <NavLink to="/dashboard#discover">Discover</NavLink>
           <NavLink to="/settings">Settings</NavLink>
         </nav>
         <div className="sidebar-foot">

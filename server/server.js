@@ -17,7 +17,7 @@ if (!ACCESS_SECRET || !REFRESH_SECRET) {
 	console.error('JWT_SECRET and JWT_REFRESH_SECRET must be set before starting the server.')
 	process.exit(1)
 }
-const statuses = ['Reading', 'Completed', 'Plan to Read', 'On Hold', 'Dropped']
+const statuses = ['Coming Soon', 'Releasing', 'Reading', 'Completed', 'Plan to Read', 'On Hold', 'Dropped']
 const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((value) => value.trim()).filter(Boolean)
 app.use(cors({ origin: origins }))
 app.use(express.json({ limit: '100kb' }))
@@ -45,7 +45,7 @@ app.get('/api/manga/search', auth, [query('q').trim().isLength({ min: 2, max: 80
 app.get('/api/manga/:anilistId', auth, anilistIdRule, validate, async (request, response) => { try { response.json(await getManga(request.params.anilistId)) } catch { response.status(502).json({ error: 'Unable to retrieve manga information right now.' }) } })
 app.get('/api/manga/:anilistId/recommendations', auth, anilistIdRule, validate, async (request, response) => { try { response.json(await getRecommendations(request.params.anilistId)) } catch { response.json(await safeTopManga()) } })
 
-const librarySelect = 'm.anilist_id AS "anilistId", m.title, m.cover_url AS "coverUrl", m.synopsis, m.genres, m.metadata, m.metadata->>\'chapters\' AS "totalChapters", p.current_chapter AS "currentChapter", p.status, p.rating, p.last_updated AS "lastUpdated"'
+const librarySelect = 'm.anilist_id AS "anilistId", m.title, m.cover_url AS "coverUrl", m.synopsis, m.genres, m.metadata, m.metadata->>\'chapters\' AS "totalChapters", p.current_chapter::float AS "currentChapter", p.status, p.rating, p.last_updated AS "lastUpdated"'
 app.get('/api/library', auth, async (request, response, next) => { try { const result = await pool.query(`SELECT ${librarySelect} FROM progress p JOIN manga m ON m.id = p.manga_id WHERE p.user_id = $1 ORDER BY p.last_updated DESC`, [request.user.userId]); response.json(result.rows) } catch (error) { next(error) } })
 app.get('/api/library/:anilistId', auth, anilistIdRule, validate, async (request, response, next) => { try { const result = await pool.query(`SELECT ${librarySelect} FROM progress p JOIN manga m ON m.id = p.manga_id WHERE p.user_id = $1 AND m.anilist_id = $2`, [request.user.userId, request.params.anilistId]); if (!result.rowCount) return response.status(404).json({ error: 'Title is not in your library.' }); response.json(result.rows[0]) } catch (error) { next(error) } })
 app.get('/api/dashboard', auth, async (request, response, next) => { try { const rows = await pool.query(`SELECT ${librarySelect} FROM progress p JOIN manga m ON m.id = p.manga_id WHERE p.user_id = $1 ORDER BY p.last_updated DESC`, [request.user.userId]); const stats = { tracked: rows.rowCount }; statuses.forEach((status) => { stats[status] = rows.rows.filter((row) => row.status === status).length }); const genres = {}; rows.rows.forEach((row) => (row.genres || []).forEach((genre) => { genres[genre] = (genres[genre] || 0) + 1 })); response.json({ stats, tracking: rows.rows.filter((row) => row.status === 'Reading').slice(0, 5), genres: Object.entries(genres).sort((a, b) => b[1] - a[1]).slice(0, 5), recommendations: await safeTopManga() }) } catch (error) { next(error) } })

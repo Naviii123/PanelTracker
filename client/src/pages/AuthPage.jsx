@@ -50,7 +50,6 @@ export default function AuthPage({ mode }) {
         <label>Email address<input name="email" required type="email" placeholder="Enter your email" value={form.email} onChange={updateField} /></label>
         <label>Password<input name="password" required type="password" placeholder="Enter your password" value={form.password} onChange={updateField} /></label>
         {isRegister && <label>Confirm password<input name="confirm" required type="password" value={form.confirm} onChange={updateField} /></label>}
-        {!isRegister && <div className="auth-options"><label className="checkbox-label"><input type="checkbox" /> Remember me</label><span>Forgot password?</span></div>}
         <button className="button button-primary button-wide">{isRegister ? 'Create my account' : 'Sign in'}</button>
         <p className="auth-switch">{isRegister ? 'Already have an account?' : "Don't have an account?"} <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Log in' : 'Sign up'}</Link></p>
       </form>
