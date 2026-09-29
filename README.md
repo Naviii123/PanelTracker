@@ -2,6 +2,8 @@
 
 PanelTracker is a full-stack web application for discovering, organizing, and tracking manga, manhwa, and manhua. It gives readers one private place to search the AniList catalog, save titles, record chapter progress, choose a reading status, add a personal rating, and review collection statistics. The interface follows the supplied PanelTracker HIFI design system, supports persistent light/dark appearance, and distinguishes titles that are Coming Soon or Releasing.
 
+Series details also include AniList-provided characters, staff roles, and related recommendations when that information is available. Mobile users get a compact bottom navigation and responsive detail sections while desktop keeps the sidebar layout.
+
 The application is designed for readers who want a tracking and organization tool rather than an online reading service. It does not host manga chapters or scrape manga websites.
 
 ## Setup and installation
@@ -20,7 +22,7 @@ Demo mode only requires Node.js and npm. It does not require Supabase, PostgreSQ
 ### Get the code
 
 ```powershell
-git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
+git clone https://github.com/Naviii123/PanelTracker
 cd PanelTracker
 ```
 
@@ -186,6 +188,8 @@ The build is written to `client/dist`. Deploy that static output to a frontend h
 10. Use the dashboard to see tracked-title statistics, currently reading titles, genre counts, and recommendations.
 
 The dashboard date is generated from the current local date. The selected light/dark appearance is saved in localStorage. AniList publication states map to `Coming Soon` and `Releasing` when appropriate. When AniList provides a chapter total, the detail form provides a bounded chapter selector and the backend rejects values above that total. When the total is unknown, the app uses a manual non-negative chapter input and displays `Chapter X / ?`; this remains available for Releasing titles.
+
+On the series detail page, Characters and Staff use live AniList data and show an image fallback or a short empty state when data is missing. Related recommendations link to their own series detail pages. On mobile, character and recommendation sections can be swiped horizontally; staff and library rows adapt to the screen width.
 
 ### Main REST API
 

@@ -50,6 +50,7 @@
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
   background: var(--canvas);
   color: var(--ink);
   transition: background-color .2s ease, color .2s ease;
@@ -357,6 +358,33 @@ h3 {
 .metadata b { display: block; margin-bottom: 4px; color: var(--muted); font: 10px 'DM Mono', monospace; }
 .anilist-link { align-self: center; color: var(--primary); font-size: 12px; font-weight: 700; }
 
+.detail-people-section,
+.detail-recommendations { margin-top: 34px; }
+.detail-people-section .section-heading,
+.detail-recommendations .section-heading { margin-bottom: 16px; }
+.character-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.character-card,
+.staff-card { display: flex; min-width: 0; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.person-image,
+.person-image-fallback { flex: 0 0 auto; width: 52px; height: 60px; border-radius: 6px; object-fit: cover; background: var(--surface-muted); }
+.person-image-fallback { display: grid; place-items: center; color: var(--muted); font-size: 22px; }
+.character-card strong,
+.character-card small,
+.staff-card strong,
+.staff-card small { display: block; overflow-wrap: anywhere; }
+.character-card strong,
+.staff-card strong { font-size: 12px; }
+.character-card small,
+.staff-card small { margin-top: 5px; color: var(--muted); font-size: 10px; }
+.staff-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.staff-image { width: 44px; height: 44px; border-radius: 50%; }
+.detail-recommendation-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.detail-recommendation-row .manga-poster { min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.detail-recommendation-row .manga-poster img { width: 54px; height: 72px; flex: 0 0 auto; }
+.detail-recommendation-row .manga-poster > div { min-width: 0; }
+
+.mobile-nav { display: none; }
+
 .progress-panel { display: grid; grid-template-columns: 1fr 1.8fr; gap: 30px; padding: 24px; border-radius: 12px; background: var(--navy); color: white; }
 .progress-panel .eyebrow { color: #9293a1; }
 .progress-form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
@@ -463,10 +491,19 @@ h3 {
   .card-body { grid-template-columns: minmax(120px, 1fr) minmax(130px, 1.2fr) minmax(65px, .5fr) auto auto; gap: 12px; }
   .card-body .edit-fields { grid-column: 1 / -1; }
   .auth-page { padding: 25px; }
+  .character-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .detail-recommendation-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 620px) {
-  .main-content { padding: 23px 16px 45px; }
+  .app-shell { display: block; min-height: 100vh; }
+  .sidebar { display: none; }
+  .main-content { width: 100%; padding: 20px 16px calc(88px + env(safe-area-inset-bottom)); }
+  .mobile-nav { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--paper); box-shadow: 0 -6px 20px var(--shadow); }
+  .mobile-nav a { display: grid; justify-items: center; gap: 3px; padding: 5px 2px; border-radius: 7px; color: var(--muted); }
+  .mobile-nav a.active { background: var(--lavender); color: var(--primary); }
+  .mobile-nav a > span { font-size: 18px; line-height: 1; }
+  .mobile-nav small { font-size: 9px; font-weight: 700; }
   .topbar { display: block; }
   .topbar .button { margin-top: 17px; }
   .search-form { display: grid; grid-template-columns: 1fr; }
@@ -475,9 +512,27 @@ h3 {
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .stat-card { padding: 16px; }
   .header-actions { align-items: center; justify-content: flex-start; margin-top: 16px; }
-  .detail-layout { grid-template-columns: 1fr; gap: 25px; }
-  .detail-cover { width: 175px; height: 250px; }
-  .progress-form { display: grid; grid-template-columns: 1fr; }
+  .detail-layout { grid-template-columns: 112px minmax(0, 1fr); gap: 16px; margin-bottom: 28px; }
+  .detail-cover { width: 112px; height: 164px; border-radius: 8px; }
+  .detail-copy { min-width: 0; padding-top: 2px; }
+  .detail-copy h1 { font-size: 20px; overflow-wrap: anywhere; }
+  .synopsis { grid-column: 1 / -1; font-size: 13px; line-height: 1.6; }
+  .chips { margin: 12px 0; }
+  .metadata { gap: 14px; padding-top: 14px; }
+  .progress-panel { gap: 16px; padding: 18px; }
+  .progress-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; }
+  .progress-form label:nth-child(3) { grid-column: 1 / -1; }
+  .progress-form label,
+  .progress-form input,
+  .progress-form select,
+  .progress-form .button { width: 100%; }
+  .character-grid { display: flex; overflow-x: auto; gap: 8px; padding: 2px 1px 10px; scroll-snap-type: x mandatory; }
+  .character-card { flex: 0 0 176px; scroll-snap-align: start; }
+  .staff-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .staff-card { align-items: flex-start; padding: 9px; }
+  .staff-image { width: 36px; height: 36px; }
+  .detail-recommendation-row { display: flex; overflow-x: auto; gap: 8px; padding: 2px 1px 10px; scroll-snap-type: x mandatory; }
+  .detail-recommendation-row .manga-poster { flex: 0 0 210px; scroll-snap-align: start; }
   .progress-form label,
   .progress-form input,
   .progress-form select,

@@ -11,7 +11,6 @@ const mediaFields = `
   chapters
   volumes
   averageScore
-  staff(perPage: 3) { edges { node { name { full } } } }
   countryOfOrigin
   isLicensed
   startDate { year month day }
@@ -54,6 +53,24 @@ export function normalizeAniListManga(media) {
     synopsis: plainDescription(media.description),
     genres: media.genres || [],
     authors: (media.staff?.edges || []).map((edge) => edge.node?.name?.full).filter(Boolean),
+    staff: (media.staff?.edges || []).map((edge) => ({
+      id: edge.node?.id,
+      name: edge.node?.name?.full || 'Unknown staff member',
+      role: edge.role || 'Staff',
+      imageUrl: edge.node?.image?.large || '',
+    })),
+    characters: (media.characters?.edges || []).map((edge) => ({
+      id: edge.node?.id,
+      name: edge.node?.name?.full || 'Unknown character',
+      role: edge.role || '',
+      imageUrl: edge.node?.image?.large || '',
+    })),
+    recommendations: (media.recommendations?.nodes || []).map((node) => node.mediaRecommendation).filter((recommendation) => recommendation?.type === 'MANGA').map((recommendation) => ({
+      anilistId: recommendation.id,
+      title: [recommendation.title?.english, recommendation.title?.romaji, recommendation.title?.native].find(Boolean) || 'Untitled manga',
+      coverUrl: recommendation.coverImage?.extraLarge || recommendation.coverImage?.large || '',
+      status: publicationStatus(recommendation.status),
+    })),
     type: media.format || 'Manga',
     chapters: media.chapters ?? null,
     volumes: media.volumes ?? null,
@@ -95,7 +112,10 @@ export async function searchManga(search, page = 1, perPage = 12) {
     query ($search: String, $page: Int, $perPage: Int) {
       Page(page: $page, perPage: $perPage) {
         pageInfo { currentPage hasNextPage perPage }
-        media(search: $search, type: MANGA) { ${mediaFields} }
+        media(search: $search, type: MANGA) {
+          ${mediaFields}
+          staff(perPage: 3) { edges { role node { id name { full } image { large } } } }
+        }
       }
     }
   `, { search, page, perPage: Math.min(perPage, 50) })
@@ -108,7 +128,18 @@ export async function searchManga(search, page = 1, perPage = 12) {
 export async function getManga(anilistId) {
   const data = await anilistRequest(`
     query ($id: Int!) {
-      Media(id: $id, type: MANGA) { ${mediaFields} }
+      Media(id: $id, type: MANGA) {
+        ${mediaFields}
+        characters(page: 1, perPage: 12, sort: [ROLE, RELEVANCE]) {
+          edges { role node { id name { full } image { large } } }
+        }
+        staff(page: 1, perPage: 12, sort: [RELEVANCE]) {
+          edges { role node { id name { full } image { large } } }
+        }
+        recommendations(page: 1, perPage: 8, sort: RATING_DESC) {
+          nodes { mediaRecommendation { id type title { romaji english native } coverImage { large extraLarge } status } }
+        }
+      }
     }
   `, { id: Number(anilistId) })
   return normalizeAniListManga(data.Media)

@@ -56,6 +56,9 @@ These changes establish the main end-to-end tracking flow while keeping the fron
 - Applied the status constraint migration to Supabase with `npm run db:schema`.
 - Verified the real-mode dashboard date and Overview navigation in the browser, then switched between light/dark themes and confirmed the choice survives reload.
 - Added a Releasing AniList title to the Supabase-backed library at chapter 25 with unknown total, verified the stored progress, then removed the test title.
+- Added AniList-backed Characters, Staff, and related Recommendations sections to Series Detail with missing-image and empty-data fallbacks.
+- Added compact mobile bottom navigation and responsive horizontal character/recommendation rows while preserving desktop sidebar navigation.
+- Verified the authenticated Express detail endpoint returns character, staff-role, and recommendation data, then removed the temporary test account.
 
 ## Why
 
@@ -65,11 +68,13 @@ These changes bring the working application closer to the approved HIFI wirefram
 
 - No automated test suite is configured; verification uses production builds, schema application, diagnostics, and browser/API checks.
 - The first Releasing-title progress test exposed a client validation bug where a null AniList chapter total was converted to zero. The null check is fixed, and chapter 25 now saves successfully with an unknown total.
+- The API was stopped during the first protected detail-endpoint probe; starting the existing server fixed the test, and the route then returned the new AniList sections successfully.
 - The Settings page still does not support account profile edits or password reset; those are not required for this increment.
 
 ## What is left
 
 - Add automated API/UI tests for dark mode, responsive layout, auth, status options, and progress boundaries.
+- Test character, staff, and recommendation empty states across multiple AniList titles and narrow mobile widths.
 - Run a two-user isolation test again against the production deployment before publishing.
 - Review remaining npm audit findings before deployment.
 - Verify GitHub repository settings and production CORS/secrets before publishing.

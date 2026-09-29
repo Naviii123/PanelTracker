@@ -62,6 +62,14 @@ The repository currently has one initial commit and the latest work is still unc
 - **What I kept, what I changed, and why:** I kept the established pages and API/database architecture. A browser test exposed that JavaScript converted a null chapter total to zero; I corrected the null handling and verified chapter 25 saves for a Releasing title with an unknown total.
 - **Commit:** pending commit
 
+### 2026-09-29 - Detail sections and mobile navigation
+
+- **Tool:** GitHub Copilot
+- **What I asked for:** Add AniList characters, staff, and related recommendations to the existing detail page, plus improve small-screen navigation and layout without replacing the desktop UI.
+- **What it gave back:** Extended the existing AniList GraphQL service and normalized data, added image/empty-data fallbacks, and added a responsive bottom navigation with compact mobile detail sections.
+- **What I kept, what I changed, and why:** I kept the existing API service, routes, Supabase library, and desktop shell. No character/staff database tables or new dependencies were introduced.
+- **Commit:** pending commit
+
 ## 2. Where the AI got it wrong
 
 ### Case 1 - Jikan package version

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { addToLibrary, getLibrary, mangaDetails, removeFromLibrary } from '../api'
-import { EmptyState, Loading, STATUSES, getCover } from '../components/ui.jsx'
+import { EmptyState, Loading, MangaPoster, PersonImage, STATUSES, getCover } from '../components/ui.jsx'
 import { chapterError, chapterLimit } from '../utils/progress.js'
 
 export default function Detail() {
@@ -91,6 +91,18 @@ export default function Detail() {
         </div>
         {progressError && <p className="form-error">{progressError}</p>}
         {message && <p className="success-message">{message}</p>}
+      </section>
+      <section className="detail-people-section">
+        <div className="section-heading"><div><span className="eyebrow">CAST</span><h2>Characters</h2></div></div>
+        {item.characters?.length ? <div className="character-grid">{item.characters.map((character) => <article className="character-card" key={character.id}><PersonImage src={character.imageUrl} name={character.name} className="character-image" /><div><strong>{character.name}</strong><small>{character.role || 'Character'}</small></div></article>)}</div> : <p className="muted-copy">Character information is not available for this title.</p>}
+      </section>
+      <section className="detail-people-section">
+        <div className="section-heading"><div><span className="eyebrow">CREATORS</span><h2>Staff</h2></div></div>
+        {item.staff?.length ? <div className="staff-grid">{item.staff.map((person) => <article className="staff-card" key={`${person.id}-${person.role}`}><PersonImage src={person.imageUrl} name={person.name} className="staff-image" /><div><strong>{person.name}</strong><small>{person.role}</small></div></article>)}</div> : <p className="muted-copy">Staff information is not available for this title.</p>}
+      </section>
+      <section className="detail-recommendations">
+        <div className="section-heading"><div><span className="eyebrow">RELATED ON ANILIST</span><h2>Recommendations</h2></div></div>
+        {item.recommendations?.length ? <div className="detail-recommendation-row">{item.recommendations.map((recommendation) => <MangaPoster key={recommendation.anilistId} item={recommendation} compact />)}</div> : <p className="muted-copy">No recommendations are available for this title yet.</p>}
       </section>
     </>
   )
