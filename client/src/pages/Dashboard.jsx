@@ -111,7 +111,7 @@ export default function Dashboard() {
             <div className="section-heading"><h2>Top genres</h2><span className="eyebrow">LIBRARY MIX</span></div>
             {data.genres.length ? data.genres.map(([genre, count]) => <div className="genre-row" key={genre}><span>{genre}</span><div><i style={{ width: `${Math.max(18, count / genreMax * 100)}%` }} /></div><b>{count}</b></div>) : <p className="muted-copy">Genre insights appear as your library grows.</p>}
           </section>
-          <section className="panel recommendations"><div className="section-heading"><h2>For your shelf</h2><span>✦</span></div>{data.recommendations.length ? data.recommendations.slice(0, 3).map((item) => <MangaPoster key={item.anilistId} item={item} compact />) : <p className="muted-copy">Recommendations are temporarily unavailable.</p>}</section>
+          <section className="panel recommendations"><div className="section-heading"><div><h2>For your shelf</h2><span className="eyebrow recommendation-reason">{data.recommendationReason || 'Popular picks'}</span></div><span aria-hidden="true">✦</span></div>{data.recommendations.length ? data.recommendations.slice(0, 3).map((item) => <MangaPoster key={item.anilistId} item={item} compact />) : <p className="muted-copy">Recommendations are temporarily unavailable.</p>}</section>
         </aside>
       </div>
     </>

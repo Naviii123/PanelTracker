@@ -7,7 +7,7 @@ import { useTheme } from '../context/ThemeContext.jsx'
 export default function Settings() {
   const navigate = useNavigate()
   const user = currentUser()
-  const { theme, setTheme, accent, setAccent } = useTheme()
+  const { theme, setTheme, accent, setAccent, textSize, setTextSize } = useTheme()
   const [adultContent, setAdultContent] = useState(showAdultContent)
   const [message, setMessage] = useState('')
 
@@ -48,6 +48,13 @@ export default function Settings() {
               <button type="button" className={`accent-option accent-indigo ${accent === 'indigo' ? 'selected' : ''}`} aria-label="Indigo accent" aria-pressed={accent === 'indigo'} onClick={() => setAccent('indigo')} />
               <button type="button" className={`accent-option accent-teal ${accent === 'teal' ? 'selected' : ''}`} aria-label="Teal accent" aria-pressed={accent === 'teal'} onClick={() => setAccent('teal')} />
               <button type="button" className={`accent-option accent-rose ${accent === 'rose' ? 'selected' : ''}`} aria-label="Rose accent" aria-pressed={accent === 'rose'} onClick={() => setAccent('rose')} />
+            </div>
+          </div>
+          <div className="text-size-setting">
+            <span className="settings-label">Text size</span>
+            <div className="appearance-control text-size-control" role="group" aria-label="Text size">
+              <button type="button" className={textSize === 'default' ? 'selected' : ''} aria-pressed={textSize === 'default'} onClick={() => setTextSize('default')}>Default</button>
+              <button type="button" className={textSize === 'large' ? 'selected' : ''} aria-pressed={textSize === 'large'} onClick={() => setTextSize('large')}>Large</button>
             </div>
           </div>
         </section>

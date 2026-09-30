@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" role="img" aria-label="PanelTracker">
+  <g fill="none" stroke="#0F172A" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
+    <rect x="4" y="4" width="56" height="56" rx="14" />
+    <path d="M17 18h12v25H17zM35 18h12v13H35zM35 39h12M17 50h30" />
+  </g>
+  <text x="72" y="41" fill="#0F172A" font-family="DM Sans, Inter, Arial, sans-serif" font-size="27" font-weight="700">PanelTracker</text>
+</svg>

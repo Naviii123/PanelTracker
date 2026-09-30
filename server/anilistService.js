@@ -52,6 +52,7 @@ export function normalizeAniListManga(media, showAdultContent = false) {
     title: titles[0] || 'Untitled manga',
     alternativeTitles: [...new Set(titles.slice(1))],
     coverUrl: media.coverImage?.extraLarge || media.coverImage?.large || '',
+    bannerUrl: media.bannerImage || '',
     synopsis: plainDescription(media.description),
     genres: media.genres || [],
     authors: (media.staff?.edges || []).map((edge) => edge.node?.name?.full).filter(Boolean),
@@ -132,6 +133,7 @@ export async function getManga(anilistId, showAdultContent = false) {
     query ($id: Int!) {
       Media(id: $id, type: MANGA) {
         ${mediaFields}
+        bannerImage
         characters(page: 1, perPage: 12, sort: [ROLE, RELEVANCE]) {
           edges { role node { id name { full } image { large } } }
         }
@@ -147,14 +149,23 @@ export async function getManga(anilistId, showAdultContent = false) {
   return normalizeAniListManga(data.Media, showAdultContent)
 }
 
-export async function getRecommendations(showAdultContent = false) {
+export async function getRecommendations(showAdultContent = false, { genres = [], excludeIds = [] } = {}) {
   const data = await anilistRequest(`
-    query ($page: Int, $perPage: Int) {
+    query ($page: Int, $perPage: Int, $genres: [String], $excludeIds: [Int]) {
       Page(page: $page, perPage: $perPage) {
         pageInfo { currentPage hasNextPage perPage }
-        media(type: MANGA, sort: POPULARITY_DESC) { ${mediaFields} }
+        media(type: MANGA, sort: POPULARITY_DESC, genre_in: $genres, id_not_in: $excludeIds) { ${mediaFields} }
       }
     }
-  `, { page: 1, perPage: showAdultContent ? 6 : 12 })
-  return (data.Page?.media || []).map((item) => normalizeAniListManga(item, showAdultContent)).filter((item) => item && (showAdultContent || !item.isAdult)).slice(0, 6)
+  `, {
+    page: 1,
+    perPage: genres.length || excludeIds.length ? 30 : showAdultContent ? 6 : 12,
+    genres: genres.length ? genres : null,
+    excludeIds: excludeIds.length ? excludeIds : null,
+  })
+  const excluded = new Set(excludeIds)
+  return (data.Page?.media || [])
+    .map((item) => normalizeAniListManga(item, showAdultContent))
+    .filter((item) => item && (showAdultContent || !item.isAdult) && !excluded.has(item.anilistId))
+    .slice(0, 6)
 }

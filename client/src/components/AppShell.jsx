@@ -16,7 +16,7 @@ export function AppShell({ children }) {
     <div className="app-shell">
       <aside className="sidebar">
         <Link className="brand" to="/dashboard" aria-label="PanelTracker overview">
-          <img src="/assets/logo/paneltracker-logo-placeholder.svg" alt="PanelTracker" />
+          <img src="/assets/logo/paneltracker-logo.svg" alt="PanelTracker" />
         </Link>
         <nav className="sidebar-nav" aria-label="Main navigation">
           <NavLink to="/dashboard" end className={({ isActive }) => isActive && location.hash !== '#search' ? 'active' : ''}>Overview</NavLink>
@@ -33,7 +33,7 @@ export function AppShell({ children }) {
         {children}
       </main>
       <nav className="mobile-nav" aria-label="Mobile navigation">
-        <NavLink to="/dashboard" end><span aria-hidden="true">⌂</span><small>Overview</small></NavLink>
+        <NavLink to="/dashboard" end className={({ isActive }) => isActive && location.hash !== '#search' ? 'active' : ''}><span aria-hidden="true">⌂</span><small>Overview</small></NavLink>
         <NavLink to="/library"><span aria-hidden="true">▤</span><small>Library</small></NavLink>
         <Link to="/dashboard#search" className={location.pathname === '/dashboard' && location.hash === '#search' ? 'active' : ''}><span aria-hidden="true">⌕</span><small>Search</small></Link>
         <NavLink to="/settings"><span aria-hidden="true">⚙</span><small>Settings</small></NavLink>

@@ -30,7 +30,9 @@ export default function AuthPage({ mode }) {
   return (
     <div className="auth-page">
       <section className="auth-art" aria-label="PanelTracker introduction">
-        <img className="auth-logo" src="/assets/logo/paneltracker-logo-placeholder.svg" alt="PanelTracker" />
+        <div className="auth-logo-lockup">
+          <img className="auth-logo" src="/assets/logo/paneltracker-logo.svg" alt="PanelTracker" />
+        </div>
         <div className="auth-art-copy">
           <span className="eyebrow">YOUR PERSONAL CATALOG</span>
           <p>Your all-in-one title tracking hub.</p>

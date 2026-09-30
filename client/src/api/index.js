@@ -34,7 +34,40 @@ export function currentUser() { try { return JSON.parse(localStorage.getItem('pa
 export async function searchManga(q, page = 1) { if (DEMO) return { items: [demoManga(1, `${q} Chronicle`), demoManga(2, `${q} Academy`), demoManga(3, `${q} Kingdom`)], pageInfo: { currentPage: page, hasNextPage: false, perPage: 12 } }; return request(`/manga/search?q=${encodeURIComponent(q)}&page=${page}&showAdult=${showAdultContent()}`) }
 export async function mangaDetails(id) { if (DEMO) return demoManga(Number(id), 'Demo Chronicle'); return request(`/manga/${id}?showAdult=${showAdultContent()}`) }
 export async function getLibrary() { if (DEMO) return demoRead().library; return request('/library') }
-export async function getDashboard() { if (DEMO) { const library = demoRead().library; const genreCounts = {}; library.forEach((item) => (item.genres || []).forEach((genre) => { genreCounts[genre] = (genreCounts[genre] || 0) + 1 })); return { stats: { tracked: library.length, Reading: library.filter((x) => x.status === 'Reading').length, Completed: library.filter((x) => x.status === 'Completed').length, 'Plan to Read': library.filter((x) => x.status === 'Plan to Read').length, 'On Hold': library.filter((x) => x.status === 'On Hold').length, Dropped: library.filter((x) => x.status === 'Dropped').length }, tracking: library.filter((x) => x.status === 'Reading'), genres: Object.entries(genreCounts).sort((a, b) => b[1] - a[1]).slice(0, 5), recommendations: [demoManga(4, 'Recommended Horizon'), demoManga(5, 'The Last Panel')] } }; return request(`/dashboard?showAdult=${showAdultContent()}`) }
+export async function getDashboard() {
+  if (DEMO) {
+    const library = demoRead().library
+    const genreCounts = {}
+    library.forEach((item) => (item.genres || []).forEach((genre) => { genreCounts[genre] = (genreCounts[genre] || 0) + 1 }))
+    const genreSummary = Object.entries(genreCounts).sort((a, b) => b[1] - a[1])
+    const topGenres = genreSummary.slice(0, 3).map(([genre]) => genre)
+    const savedIds = new Set(library.map((item) => Number(item.anilistId)))
+    const candidates = [
+      { ...demoManga(4, 'Recommended Horizon'), genres: ['Action', 'Fantasy'] },
+      { ...demoManga(5, 'The Last Panel'), genres: ['Drama', 'Comedy'] },
+      { ...demoManga(6, 'Quiet Days'), genres: ['Comedy', 'Slice of Life'] },
+    ].filter((item) => !savedIds.has(item.anilistId))
+    const matchedRecommendations = topGenres.length
+      ? candidates.filter((item) => item.genres.some((genre) => topGenres.includes(genre)))
+      : []
+    const recommendations = matchedRecommendations.length ? matchedRecommendations : candidates
+    return {
+      stats: {
+        tracked: library.length,
+        Reading: library.filter((item) => item.status === 'Reading').length,
+        Completed: library.filter((item) => item.status === 'Completed').length,
+        'Plan to Read': library.filter((item) => item.status === 'Plan to Read').length,
+        'On Hold': library.filter((item) => item.status === 'On Hold').length,
+        Dropped: library.filter((item) => item.status === 'Dropped').length,
+      },
+      tracking: library.filter((item) => item.status === 'Reading'),
+      genres: genreSummary.slice(0, 5),
+      recommendations,
+      recommendationReason: matchedRecommendations.length ? 'Based on your top genres' : 'Popular picks',
+    }
+  }
+  return request(`/dashboard?showAdult=${showAdultContent()}`)
+}
 export async function addToLibrary(manga, progress = {}) { const item = { ...manga, currentChapter: Number(progress.currentChapter || 0), status: progress.status || 'Plan to Read', rating: progress.rating ? Number(progress.rating) : null, lastUpdated: new Date().toISOString() }; const total = manga?.chapters ?? null; if (total !== null && Number.isFinite(Number(total)) && item.currentChapter > Number(total)) throw new Error(`Chapter cannot exceed the known total of ${total}.`); if (DEMO) { const data = demoRead(); data.library = [...data.library.filter((x) => x.anilistId !== manga.anilistId), item]; demoWrite(data); return item }; return request('/library', { method: 'POST', body: JSON.stringify({ anilistId: manga.anilistId, manga, ...progress }) }) }
 export async function updateLibrary(id, progress) { if (DEMO) { const data = demoRead(); const item = data.library.find((x) => x.anilistId === Number(id)); const total = Number(item?.chapters ?? item?.totalChapters); if (Number.isFinite(total) && Number(progress.currentChapter) > total) throw new Error(`Chapter cannot exceed the known total of ${total}.`); Object.assign(item, progress, { lastUpdated: new Date().toISOString() }); demoWrite(data); return item }; return request(`/library/${id}`, { method: 'PUT', body: JSON.stringify(progress) }) }
 export async function removeFromLibrary(id) { if (DEMO) { const data = demoRead(); data.library = data.library.filter((x) => x.anilistId !== Number(id)); demoWrite(data); return }; return request(`/library/${id}`, { method: 'DELETE' }) }

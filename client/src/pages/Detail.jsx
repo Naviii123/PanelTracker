@@ -13,6 +13,7 @@ export default function Detail() {
   const [rating, setRating] = useState('')
   const [message, setMessage] = useState('')
   const [progressError, setProgressError] = useState('')
+  const [showAllRecommendations, setShowAllRecommendations] = useState(false)
 
   useEffect(() => {
     Promise.all([mangaDetails(anilistId), getLibrary()]).then(([details, saved]) => {
@@ -31,6 +32,8 @@ export default function Detail() {
 
   if (!item) return <Loading error={message} />
   const existing = library.find((row) => row.anilistId === Number(anilistId))
+  const recommendations = item.recommendations || []
+  const visibleRecommendations = showAllRecommendations ? recommendations : recommendations.slice(0, 4)
 
   async function save() {
     const error = chapterError(item, chapter)
@@ -57,7 +60,8 @@ export default function Detail() {
   return (
     <>
       <Link className="back-link" to="/dashboard">← Back to overview</Link>
-      <div className="detail-layout">
+      {item.bannerUrl && <div className="detail-banner" aria-hidden="true"><img src={item.bannerUrl} alt="" /></div>}
+      <div className={`detail-layout${item.bannerUrl ? ' detail-layout-with-banner' : ''}`}>
         <img className="detail-cover" src={getCover(item)} alt="" />
         <div className="detail-copy">
           <span className="eyebrow">{item.type} / <span className={`release-status ${item.status === 'Coming Soon' ? 'upcoming' : item.status === 'Releasing' ? 'releasing' : ''}`}>{item.status}</span></span>
@@ -65,15 +69,18 @@ export default function Detail() {
           {item.alternativeTitles?.length > 0 && <p className="alternative-titles">Also known as: {item.alternativeTitles.join(' · ')}</p>}
           <p className="synopsis">{item.synopsis}</p>
           <div className="chips">{item.genres?.map((genre) => <span key={genre}>{genre}</span>)}</div>
-          <div className="metadata">
-            <span><b>Chapters</b>{item.chapters ?? '?'}</span>
-            <span><b>Volumes</b>{item.volumes ?? '?'}</span>
-            <span><b>Score</b>{item.score ?? '—'}</span>
-            <span><b>Author</b>{item.authors?.[0] || 'Unknown'}</span>
-            <span><b>Release</b>{item.startDate || 'Unknown'}{item.endDate ? ` – ${item.endDate}` : ''}</span>
-            {item.countryOfOrigin && <span><b>Origin</b>{item.countryOfOrigin}</span>}
-            {item.siteUrl && <a className="anilist-link" href={item.siteUrl} target="_blank" rel="noreferrer">AniList ↗</a>}
-          </div>
+          <section className="title-metadata" aria-label="Title details">
+            <span className="eyebrow">Title details</span>
+            <dl className="metadata">
+              <div><dt>Chapters</dt><dd>{item.chapters ?? '?'}</dd></div>
+              <div><dt>Volumes</dt><dd>{item.volumes ?? '?'}</dd></div>
+              <div><dt>Score</dt><dd>{item.score ?? '—'}</dd></div>
+              <div><dt>Author</dt><dd>{item.authors?.[0] || 'Unknown'}</dd></div>
+              <div><dt>Release</dt><dd>{item.startDate || 'Unknown'}{item.endDate ? ` – ${item.endDate}` : ''}</dd></div>
+              {item.countryOfOrigin && <div><dt>Origin</dt><dd>{item.countryOfOrigin}</dd></div>}
+              {item.siteUrl && <div><dt>Source</dt><dd><a className="anilist-link" href={item.siteUrl} target="_blank" rel="noreferrer">AniList ↗</a></dd></div>}
+            </dl>
+          </section>
         </div>
       </div>
       <section className="progress-panel">
@@ -101,8 +108,11 @@ export default function Detail() {
         {item.staff?.length ? <div className="staff-grid">{item.staff.map((person) => <article className="staff-card" key={`${person.id}-${person.role}`}><PersonImage src={person.imageUrl} name={person.name} className="staff-image" /><div><strong>{person.name}</strong><small>{person.role}</small></div></article>)}</div> : <p className="muted-copy">Staff information is not available for this title.</p>}
       </section>
       <section className="detail-recommendations">
-        <div className="section-heading"><div><span className="eyebrow">RELATED ON ANILIST</span><h2>Recommendations</h2></div></div>
-        {item.recommendations?.length ? <div className="detail-recommendation-row">{item.recommendations.map((recommendation) => <MangaPoster key={recommendation.anilistId} item={recommendation} compact />)}</div> : <p className="muted-copy">No recommendations are available for this title yet.</p>}
+        <div className="section-heading">
+          <div><h2>Recommendations</h2></div>
+          {recommendations.length > 4 && <button type="button" className="text-button" aria-expanded={showAllRecommendations} aria-controls="detail-recommendation-list" onClick={() => setShowAllRecommendations((current) => !current)}>{showAllRecommendations ? 'Show fewer' : `Show all (${recommendations.length})`}</button>}
+        </div>
+        {recommendations.length ? <div className="detail-recommendation-row" id="detail-recommendation-list">{visibleRecommendations.map((recommendation) => <MangaPoster key={recommendation.anilistId} item={recommendation} compact />)}</div> : <p className="muted-copy">No recommendations are available for this title yet.</p>}
       </section>
     </>
   )
