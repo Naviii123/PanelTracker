@@ -2,6 +2,7 @@ const ANILIST_URL = 'https://graphql.anilist.co'
 
 const mediaFields = `
   id
+  isAdult
   title { romaji english native }
   coverImage { large extraLarge }
   description(asHtml: false)
@@ -42,11 +43,12 @@ function plainDescription(description) {
     .replace(/<[^>]*>/g, '')
 }
 
-export function normalizeAniListManga(media) {
+export function normalizeAniListManga(media, showAdultContent = false) {
   if (!media) return null
   const titles = [media.title?.english, media.title?.romaji, media.title?.native].filter(Boolean)
   return {
     anilistId: media.id,
+    isAdult: media.isAdult === true,
     title: titles[0] || 'Untitled manga',
     alternativeTitles: [...new Set(titles.slice(1))],
     coverUrl: media.coverImage?.extraLarge || media.coverImage?.large || '',
@@ -65,7 +67,7 @@ export function normalizeAniListManga(media) {
       role: edge.role || '',
       imageUrl: edge.node?.image?.large || '',
     })),
-    recommendations: (media.recommendations?.nodes || []).map((node) => node.mediaRecommendation).filter((recommendation) => recommendation?.type === 'MANGA').map((recommendation) => ({
+    recommendations: (media.recommendations?.nodes || []).map((node) => node.mediaRecommendation).filter((recommendation) => recommendation?.type === 'MANGA' && (showAdultContent || !recommendation.isAdult)).map((recommendation) => ({
       anilistId: recommendation.id,
       title: [recommendation.title?.english, recommendation.title?.romaji, recommendation.title?.native].find(Boolean) || 'Untitled manga',
       coverUrl: recommendation.coverImage?.extraLarge || recommendation.coverImage?.large || '',
@@ -107,7 +109,7 @@ async function anilistRequest(query, variables = {}) {
   return result.data
 }
 
-export async function searchManga(search, page = 1, perPage = 12) {
+export async function searchManga(search, page = 1, perPage = 12, showAdultContent = false) {
   const data = await anilistRequest(`
     query ($search: String, $page: Int, $perPage: Int) {
       Page(page: $page, perPage: $perPage) {
@@ -120,12 +122,12 @@ export async function searchManga(search, page = 1, perPage = 12) {
     }
   `, { search, page, perPage: Math.min(perPage, 50) })
   return {
-    items: (data.Page?.media || []).map(normalizeAniListManga),
+    items: (data.Page?.media || []).map((item) => normalizeAniListManga(item, showAdultContent)).filter((item) => item && (showAdultContent || !item.isAdult)),
     pageInfo: data.Page?.pageInfo || { currentPage: page, hasNextPage: false, perPage },
   }
 }
 
-export async function getManga(anilistId) {
+export async function getManga(anilistId, showAdultContent = false) {
   const data = await anilistRequest(`
     query ($id: Int!) {
       Media(id: $id, type: MANGA) {
@@ -137,15 +139,15 @@ export async function getManga(anilistId) {
           edges { role node { id name { full } image { large } } }
         }
         recommendations(page: 1, perPage: 8, sort: RATING_DESC) {
-          nodes { mediaRecommendation { id type title { romaji english native } coverImage { large extraLarge } status } }
+          nodes { mediaRecommendation { id type isAdult title { romaji english native } coverImage { large extraLarge } status } }
         }
       }
     }
   `, { id: Number(anilistId) })
-  return normalizeAniListManga(data.Media)
+  return normalizeAniListManga(data.Media, showAdultContent)
 }
 
-export async function getRecommendations() {
+export async function getRecommendations(showAdultContent = false) {
   const data = await anilistRequest(`
     query ($page: Int, $perPage: Int) {
       Page(page: $page, perPage: $perPage) {
@@ -153,6 +155,6 @@ export async function getRecommendations() {
         media(type: MANGA, sort: POPULARITY_DESC) { ${mediaFields} }
       }
     }
-  `, { page: 1, perPage: 6 })
-  return (data.Page?.media || []).map(normalizeAniListManga)
+  `, { page: 1, perPage: showAdultContent ? 6 : 12 })
+  return (data.Page?.media || []).map((item) => normalizeAniListManga(item, showAdultContent)).filter((item) => item && (showAdultContent || !item.isAdult)).slice(0, 6)
 }

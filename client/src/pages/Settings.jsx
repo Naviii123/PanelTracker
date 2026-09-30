@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { clearLibrary, currentUser, isDemo, logout } from '../api'
+import { clearLibrary, currentUser, isDemo, logout, setShowAdultContent, showAdultContent } from '../api'
 import { PageHeader } from '../components/AppShell.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 
 export default function Settings() {
   const navigate = useNavigate()
   const user = currentUser()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, accent, setAccent } = useTheme()
+  const [adultContent, setAdultContent] = useState(showAdultContent)
   const [message, setMessage] = useState('')
 
   async function handleClearLibrary() {
@@ -21,6 +22,12 @@ export default function Settings() {
     navigate('/login')
   }
 
+  function handleAdultContentChange(event) {
+    const enabled = event.target.checked
+    setAdultContent(enabled)
+    setShowAdultContent(enabled)
+  }
+
   return (
     <>
       <PageHeader eyebrow="ACCOUNT" title="Settings" />
@@ -28,12 +35,30 @@ export default function Settings() {
       <div className="settings-grid">
         <section className="settings-section">
           <span className="eyebrow">APPEARANCE</span>
-          <h2>Light or dark</h2>
-          <p className="settings-help">Choose the appearance used across PanelTracker. Your choice is saved on this device.</p>
+          <h2>Appearance</h2>
+          <p className="settings-help">Choose light, dark, or follow your device setting. Your choice is saved on this device.</p>
           <div className="appearance-control" role="group" aria-label="Appearance">
             <button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><span className="appearance-swatch light-swatch" />Light</button>
             <button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><span className="appearance-swatch dark-swatch" />Dark</button>
+            <button type="button" className={theme === 'system' ? 'selected' : ''} aria-pressed={theme === 'system'} onClick={() => setTheme('system')}><span className="appearance-swatch system-swatch" />System</button>
           </div>
+          <div className="accent-setting">
+            <span className="settings-label">Accent color</span>
+            <div className="accent-options" role="group" aria-label="Accent color">
+              <button type="button" className={`accent-option accent-indigo ${accent === 'indigo' ? 'selected' : ''}`} aria-label="Indigo accent" aria-pressed={accent === 'indigo'} onClick={() => setAccent('indigo')} />
+              <button type="button" className={`accent-option accent-teal ${accent === 'teal' ? 'selected' : ''}`} aria-label="Teal accent" aria-pressed={accent === 'teal'} onClick={() => setAccent('teal')} />
+              <button type="button" className={`accent-option accent-rose ${accent === 'rose' ? 'selected' : ''}`} aria-label="Rose accent" aria-pressed={accent === 'rose'} onClick={() => setAccent('rose')} />
+            </div>
+          </div>
+        </section>
+        <section className="settings-section">
+          <span className="eyebrow">CONTENT PREFERENCES</span>
+          <h2>Adult content</h2>
+          <label className="preference-toggle">
+            <span><strong>Show Adult Content</strong><small>Uses AniList's adult-content classification for search and recommendations.</small></span>
+            <input type="checkbox" checked={adultContent} onChange={handleAdultContentChange} />
+          </label>
+          <p className="settings-help">Off by default. AniList's classification is not guaranteed to catch all adult or inappropriate content; Ecchi entries are not classified as adult by AniList. This is a content preference, not complete protection. Existing saved titles are not removed.</p>
         </section>
         <section className="settings-section">
           <span className="eyebrow">PROFILE</span>

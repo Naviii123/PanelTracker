@@ -70,6 +70,14 @@ The repository currently has one initial commit and the latest work is still unc
 - **What I kept, what I changed, and why:** I kept the existing API service, routes, Supabase library, and desktop shell. No character/staff database tables or new dependencies were introduced.
 - **Commit:** pending commit
 
+### 2026-09-30 - Week 2.5 responsive and content preferences
+
+- **Tool:** GitHub Copilot
+- **What I asked for:** Polish tablet/mobile navigation and progress alignment, add useful settings including optional AniList adult filtering, and reduce excessive gradient treatment.
+- **What it gave back:** A tablet bottom navigation breakpoint, focused mobile Search action, grid-based progress controls, System/accent settings, and an AniList `isAdult` filtering path.
+- **What I kept, what I changed, and why:** I preserved the current pages, desktop sidebar, and API architecture. A live AniList query showed `isAdult: true` filters to adult-only results, so I changed the implementation to request `isAdult` and filter returned entries locally according to the preference; live search tests confirmed OFF excludes marked entries while ON retains both regular and marked results.
+- **Commit:** pending commit
+
 ## 2. Where the AI got it wrong
 
 ### Case 1 - Jikan package version

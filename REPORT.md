@@ -59,6 +59,38 @@ These changes establish the main end-to-end tracking flow while keeping the fron
 - Added AniList-backed Characters, Staff, and related Recommendations sections to Series Detail with missing-image and empty-data fallbacks.
 - Added compact mobile bottom navigation and responsive horizontal character/recommendation rows while preserving desktop sidebar navigation.
 - Verified the authenticated Express detail endpoint returns character, staff-role, and recommendation data, then removed the temporary test account.
+- Added a default-off Show Adult Content preference based on AniList `isAdult`, threaded through search and recommendations without altering saved library records.
+- Added System theme and persistent Indigo/Teal/Rose accent choices in Settings.
+- Made tablet portrait use the labeled compact bottom navigation, made Search focus its field, aligned progress controls with responsive grids, and reduced the auth gradient intensity.
+- Added a default-off AniList adult-content preference to Settings and applied it to AniList search, dashboard recommendations, and series-related recommendations without changing saved library rows.
+- Added System theme support and persistent indigo/teal/rose accent selection.
+- Verified AniList's actual filter behavior: OFF excludes adult-marked results; ON includes regular and adult-marked entries. Documented AniList's accuracy and Ecchi limitations.
+
+## Week of: 2026-09-30
+
+## What changed this week
+
+- Added responsive bottom navigation for tablet portrait as well as mobile while keeping the desktop sidebar.
+- Made the mobile Search item focus the dashboard search field so it has a distinct action from Overview.
+- Improved progress form grid alignment for desktop/tablet/mobile layouts.
+- Replaced AniList's exact `isAdult` query filter with local filtering on returned `isAdult` values, because `isAdult: true` returns adult-only entries rather than including adults in regular results.
+- Added System theme and accent selections plus the documented adult-content preference.
+
+## Why
+
+This increment targets tablet/mobile usability and settings customization, keeping the existing PanelTracker layout and AniList/Express/PostgreSQL architecture intact.
+
+## What broke or what I got stuck on
+
+- AniList's boolean `isAdult` argument is an exact filter; using `true` alone returned adult-only results. The integration now requests the field and filters results locally to implement the intended include/exclude behavior.
+- The browser automation runtime enforces a minimum viewport wider than some requested mobile widths. CSS builds and browser checks ran, but exact 375px/390px validation should also be repeated in a physical or emulator viewport.
+- There is no automated test suite yet.
+
+## What is left
+
+- Add automated tests for user preferences, query filtering, responsive breakpoints, and library isolation.
+- Confirm the adult-content preference across additional AniList titles, especially entries with missing classification data.
+- Review dependency audit findings and production deployment settings before publishing.
 
 ## Why
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { currentUser, getDashboard, searchManga } from '../api'
 import { PageHeader } from '../components/AppShell.jsx'
@@ -24,6 +24,7 @@ function TrackingRow({ item }) {
 
 export default function Dashboard() {
   const location = useLocation()
+  const searchInput = useRef(null)
   const [data, setData] = useState(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -37,7 +38,10 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    if (location.hash === '#search') document.getElementById('search')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (location.hash === '#search') {
+      document.getElementById('search')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      searchInput.current?.focus({ preventScroll: true })
+    }
   }, [location.hash, data])
 
   async function loadSearchPage(page) {
@@ -78,7 +82,7 @@ export default function Dashboard() {
       />
       <section className="search-panel" id="search">
         <form onSubmit={handleSearch} className="search-form">
-          <input placeholder="Search manga, manhwa, manhua..." value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input ref={searchInput} placeholder="Search manga, manhwa, manhua..." value={query} onChange={(event) => setQuery(event.target.value)} />
           <button className="button button-primary">Search</button>
         </form>
         {results.length > 0 && (

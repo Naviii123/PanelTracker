@@ -187,9 +187,13 @@ The build is written to `client/dist`. Deploy that static output to a frontend h
 9. Open `/settings` to switch between light and dark appearance, view account/app mode information, clear the current user's library, or log out.
 10. Use the dashboard to see tracked-title statistics, currently reading titles, genre counts, and recommendations.
 
-The dashboard date is generated from the current local date. The selected light/dark appearance is saved in localStorage. AniList publication states map to `Coming Soon` and `Releasing` when appropriate. When AniList provides a chapter total, the detail form provides a bounded chapter selector and the backend rejects values above that total. When the total is unknown, the app uses a manual non-negative chapter input and displays `Chapter X / ?`; this remains available for Releasing titles.
+The dashboard date is generated from the current local date. Settings supports Light, Dark, or System appearance and saved Indigo, Teal, or Rose accent colors. AniList publication states map to `Coming Soon` and `Releasing` when appropriate. When AniList provides a chapter total, the detail form provides a bounded chapter selector and the backend rejects values above that total. When the total is unknown, the app uses a manual non-negative chapter input and displays `Chapter X / ?`; this remains available for Releasing titles.
 
 On the series detail page, Characters and Staff use live AniList data and show an image fallback or a short empty state when data is missing. Related recommendations link to their own series detail pages. On mobile, character and recommendation sections can be swiped horizontally; staff and library rows adapt to the screen width.
+
+### Adult-content preference
+
+Settings includes **Show Adult Content**, off by default. PanelTracker requests AniList's `isAdult` field and excludes entries marked adult from search and automatically fetched recommendations while the preference is off. Enabling it allows those marked entries alongside other results. Existing saved library records are not deleted or changed when this preference changes. AniList's classification is not guaranteed to catch every adult or inappropriate entry; Ecchi entries are not classified as adult by AniList. This setting is a content preference, not complete NSFW protection.
 
 ### Main REST API
 
