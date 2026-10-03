@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 export const STATUSES = ['Coming Soon', 'Releasing', 'Reading', 'Completed', 'Plan to Read', 'On Hold', 'Dropped']
 
 export function getCover(item) {
-  return item.coverUrl || '/assets/placeholders/manga-cover-placeholder.svg'
+  return item.coverUrl || `${import.meta.env.BASE_URL}assets/placeholders/manga-cover-placeholder.svg`
 }
 
 export function StatCard({ label, value, tone = '' }) {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { login, register } from '../api'
+import paneltrackerLogo from '/assets/logo/paneltracker-logo.svg'
 
 export default function AuthPage({ mode }) {
   const navigate = useNavigate()
@@ -29,9 +30,13 @@ export default function AuthPage({ mode }) {
 
   return (
     <div className="auth-page">
-      <section className="auth-art" aria-label="PanelTracker introduction">
+      <section
+        className="auth-art"
+        aria-label="PanelTracker introduction"
+        style={{ backgroundImage: `url(${import.meta.env.BASE_URL}assets/images/auth-manga-collage.png)` }}
+      >
         <div className="auth-logo-lockup">
-          <img className="auth-logo" src="/assets/logo/paneltracker-logo.svg" alt="PanelTracker" />
+          <img className="auth-logo" src={paneltrackerLogo} alt="PanelTracker" />
         </div>
         <div className="auth-art-copy">
           <span className="eyebrow">YOUR PERSONAL CATALOG</span>

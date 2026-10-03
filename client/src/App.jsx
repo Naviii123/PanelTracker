@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { currentUser } from './api'
 import { AppShell } from './components/AppShell.jsx'
 import AuthPage from './pages/AuthPage.jsx'
@@ -25,13 +25,13 @@ function ProtectedRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
         <Route path="/" element={<Navigate to={currentUser() ? '/dashboard' : '/login'} replace />} />
         <Route path="*" element={<ProtectedRoutes />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }

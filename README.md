@@ -1,5 +1,7 @@
 # PanelTracker
 
+[![Made with AI](https://img.shields.io/badge/Made_with-AI_assistance-blue)](AI-USAGE.md)
+
 PanelTracker is a full-stack web application for discovering, organizing, and tracking manga, manhwa, and manhua. It gives readers one private place to search the AniList catalog, save titles, record chapter progress, choose a reading status, add a personal rating, and review collection statistics. The interface follows the supplied PanelTracker HIFI design system, supports persistent light/dark appearance, and distinguishes titles that are Coming Soon or Releasing.
 
 Series details also include AniList-provided characters, staff roles, and related recommendations when that information is available. Mobile users get a compact bottom navigation and responsive detail sections while desktop keeps the sidebar layout.
@@ -25,8 +27,6 @@ Demo mode only requires Node.js and npm. It does not require Supabase, PostgreSQ
 git clone https://github.com/Naviii123/PanelTracker
 cd PanelTracker
 ```
-
-Replace the placeholder repository URL with the actual repository URL.
 
 ### Install dependencies
 
@@ -255,9 +255,9 @@ PanelTracker/
 
 ## Screenshots
 
-The screenshot below shows the running authentication screen in demo mode:
+The screenshot below shows the current sign-in screen, captured in demo mode:
 
-![PanelTracker sign-in screen](docs/assets/paneltracker-login.png)
+![Current PanelTracker sign-in screen](docs/assets/paneltracker-login.png)
 
 The visual direction follows the supplied PanelTracker design system: `#6366F1` primary actions, `#0F172A` ink, `#475569` muted text, `#F8FAFC` surfaces, `#E2E8F0` borders, Inter typography, and 8px spacing increments.
 
@@ -266,14 +266,13 @@ The visual direction follows the supplied PanelTracker design system: `#6366F1` 
 - The real Supabase flow cannot be fully exercised until a user supplies a valid local `DATABASE_URL` and runs the schema.
 - There are no automated frontend or backend test suites yet; verification currently uses production builds, syntax checks, and manual browser flows.
 - The Settings page is intentionally limited to account display, app-mode information, library clearing, and logout. Profile editing and password reset are future work.
-- The “Forgot password?” text is currently informational and has no reset workflow.
 - Search currently focuses on title text. Type and genre filters can be added later through AniList query variables.
 - Recommendations use a simple AniList popularity fallback rather than personalized ranking.
 - Demo mode is intentionally local to one browser and is not a substitute for production authentication or Supabase storage.
 
 ## AI use
 
-AI assistance was used for implementation, debugging, documentation, and UI cleanup. The current record is maintained in [AI-USAGE.md](AI-USAGE.md).
+I set the project direction and feature requirements, supplied the wireframes, and made the final product and behavior decisions. GitHub Copilot was used extensively for implementation, debugging, documentation, and UI polish; I reviewed, tested, and adapted its suggestions. See [AI-USAGE.md](AI-USAGE.md) for the detailed record.
 
 ## License
 

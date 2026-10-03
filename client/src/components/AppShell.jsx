@@ -1,6 +1,7 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { currentUser, isDemo, logout } from '../api'
 import DemoNotice from './DemoNotice.jsx'
+import paneltrackerLogo from '/assets/logo/paneltracker-logo.svg'
 
 export function AppShell({ children }) {
   const navigate = useNavigate()
@@ -16,7 +17,7 @@ export function AppShell({ children }) {
     <div className="app-shell">
       <aside className="sidebar">
         <Link className="brand" to="/dashboard" aria-label="PanelTracker overview">
-          <img src="/assets/logo/paneltracker-logo.svg" alt="PanelTracker" />
+          <img src={paneltrackerLogo} alt="PanelTracker" />
         </Link>
         <nav className="sidebar-nav" aria-label="Main navigation">
           <NavLink to="/dashboard" end className={({ isActive }) => isActive && location.hash !== '#search' ? 'active' : ''}>Overview</NavLink>
