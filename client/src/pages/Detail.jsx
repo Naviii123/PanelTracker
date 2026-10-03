@@ -16,6 +16,8 @@ export default function Detail() {
   const [showAllRecommendations, setShowAllRecommendations] = useState(false)
 
   useEffect(() => {
+    setMessage('')
+    setProgressError('')
     Promise.all([mangaDetails(anilistId), getLibrary()]).then(([details, saved]) => {
       setItem(details)
       setLibrary(saved)
