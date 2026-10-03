@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { login, register } from '../api'
+import { login, register, startGuestSession } from '../api'
 import paneltrackerLogo from '/assets/logo/paneltracker-logo.svg'
 
 export default function AuthPage({ mode }) {
@@ -22,6 +22,16 @@ export default function AuthPage({ mode }) {
     }
     try {
       await (isRegister ? register(form) : login(form))
+      navigate('/dashboard')
+    } catch (caught) {
+      setError(caught.message)
+    }
+  }
+
+  async function handleGuestAccess() {
+    setError('')
+    try {
+      await startGuestSession()
       navigate('/dashboard')
     } catch (caught) {
       setError(caught.message)
@@ -58,6 +68,7 @@ export default function AuthPage({ mode }) {
         <label>Password<input name="password" required type="password" placeholder="Enter your password" value={form.password} onChange={updateField} /></label>
         {isRegister && <label>Confirm password<input name="confirm" required type="password" value={form.confirm} onChange={updateField} /></label>}
         <button className="button button-primary button-wide">{isRegister ? 'Create my account' : 'Sign in'}</button>
+        {!isRegister && <button type="button" className="button button-guest button-wide" onClick={handleGuestAccess}>Browse as guest <span>48 hours · read only</span></button>}
         <p className="auth-switch">{isRegister ? 'Already have an account?' : "Don't have an account?"} <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Log in' : 'Sign up'}</Link></p>
       </form>
     </div>

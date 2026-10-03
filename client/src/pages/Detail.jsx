@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { addToLibrary, getLibrary, mangaDetails, removeFromLibrary } from '../api'
+import { addToLibrary, currentUser, getLibrary, mangaDetails, removeFromLibrary } from '../api'
 import { EmptyState, Loading, MangaPoster, PersonImage, STATUSES, getCover } from '../components/ui.jsx'
 import { chapterError, chapterLimit } from '../utils/progress.js'
 
 export default function Detail() {
   const { anilistId } = useParams()
+  const guest = currentUser()?.isGuest
   const [item, setItem] = useState(null)
   const [library, setLibrary] = useState([])
   const [chapter, setChapter] = useState(0)
@@ -18,7 +19,7 @@ export default function Detail() {
   useEffect(() => {
     setMessage('')
     setProgressError('')
-    Promise.all([mangaDetails(anilistId), getLibrary()]).then(([details, saved]) => {
+    Promise.all([mangaDetails(anilistId), guest ? Promise.resolve([]) : getLibrary()]).then(([details, saved]) => {
       setItem(details)
       setLibrary(saved)
       const existing = saved.find((row) => row.anilistId === Number(anilistId))
@@ -30,7 +31,7 @@ export default function Detail() {
         setStatus(details.status)
       }
     }).catch((caught) => setMessage(caught.message))
-  }, [anilistId])
+  }, [anilistId, guest])
 
   if (!item) return <Loading error={message} />
   const existing = library.find((row) => row.anilistId === Number(anilistId))
@@ -85,7 +86,10 @@ export default function Detail() {
           </section>
         </div>
       </div>
-      <section className="progress-panel">
+      {guest ? <section className="progress-panel guest-progress-panel">
+        <div><span className="eyebrow">BROWSE ONLY</span><h2>Keep track of your reading.</h2><p>Create a free account to save this title and log chapter progress.</p></div>
+        <Link className="button button-accent" to="/register">Create account</Link>
+      </section> : <section className="progress-panel">
         <div>
           <span className="eyebrow">MY PROGRESS</span>
           <h2>{existing ? 'Keep the momentum.' : 'Add this title to your shelf.'}</h2>
@@ -100,7 +104,7 @@ export default function Detail() {
         </div>
         {progressError && <p className="form-error">{progressError}</p>}
         {message && <p className="success-message">{message}</p>}
-      </section>
+      </section>}
       <section className="detail-people-section">
         <div className="section-heading"><div><span className="eyebrow">CAST</span><h2>Characters</h2></div></div>
         {item.characters?.length ? <div className="character-grid">{item.characters.map((character) => <article className="character-card" key={character.id}><PersonImage src={character.imageUrl} name={character.name} className="character-image" /><div><strong>{character.name}</strong><small>{character.role || 'Character'}</small></div></article>)}</div> : <p className="muted-copy">Character information is not available for this title.</p>}

@@ -2,6 +2,7 @@ const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
 const DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
 const key = 'paneltracker-demo'
 const adultContentKey = 'paneltracker-show-adult-content'
+const guestDuration = 48 * 60 * 60 * 1000
 
 export function showAdultContent() {
   try { return localStorage.getItem(adultContentKey) === 'true' } catch { return false }
@@ -26,14 +27,38 @@ async function refresh() { try { const response = await fetch(`${BASE}/auth/refr
 function saveSession(data) { localStorage.setItem('paneltracker-access', data.accessToken || 'demo'); localStorage.setItem('paneltracker-refresh', data.refreshToken || 'demo'); localStorage.setItem('paneltracker-user', JSON.stringify(data.user)); return data.user }
 function clearSession() { ['paneltracker-access', 'paneltracker-refresh', 'paneltracker-user'].forEach((item) => localStorage.removeItem(item)) }
 
+export async function startGuestSession() {
+  let guestExpiresAt = Date.now() + guestDuration
+  let accessToken = 'demo'
+  if (!DEMO) {
+    const response = await fetch(`${BASE}/auth/guest`, { method: 'POST' })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || 'Unable to start guest browsing.')
+    guestExpiresAt = data.expiresAt
+    accessToken = data.accessToken
+  }
+  const user = { id: 'guest', username: 'Guest', isGuest: true, guestExpiresAt }
+  clearSession()
+  localStorage.setItem('paneltracker-access', accessToken)
+  localStorage.setItem('paneltracker-user', JSON.stringify(user))
+  return user
+}
+
 export const isDemo = DEMO
 export async function login(input) { if (DEMO) { const user = saveSession({ user: { id: 'demo', username: input.email.split('@')[0], email: input.email } }); return user }; return saveSession(await request('/auth/login', { method: 'POST', body: JSON.stringify(input) })) }
 export async function register(input) { if (DEMO) { const user = saveSession({ user: { id: 'demo', username: input.username, email: input.email } }); return user }; return saveSession(await request('/auth/register', { method: 'POST', body: JSON.stringify(input) })) }
-export async function logout() { if (!DEMO) await request('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: localStorage.getItem('paneltracker-refresh') }) }).catch(() => {}); clearSession() }
-export function currentUser() { try { return JSON.parse(localStorage.getItem('paneltracker-user')) } catch { return null } }
+export async function logout() { if (!DEMO && localStorage.getItem('paneltracker-refresh')) await request('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: localStorage.getItem('paneltracker-refresh') }) }).catch(() => {}); clearSession() }
+export function currentUser() {
+  try {
+    const user = JSON.parse(localStorage.getItem('paneltracker-user'))
+    if (user?.isGuest && user.guestExpiresAt <= Date.now()) { clearSession(); return null }
+    return user
+  } catch { return null }
+}
+export function isGuest() { return Boolean(currentUser()?.isGuest) }
 export async function searchManga(q, page = 1) { if (DEMO) return { items: [demoManga(1, `${q} Chronicle`), demoManga(2, `${q} Academy`), demoManga(3, `${q} Kingdom`)], pageInfo: { currentPage: page, hasNextPage: false, perPage: 12 } }; return request(`/manga/search?q=${encodeURIComponent(q)}&page=${page}&showAdult=${showAdultContent()}`) }
 export async function mangaDetails(id) { if (DEMO) return demoManga(Number(id), 'Demo Chronicle'); return request(`/manga/${id}?showAdult=${showAdultContent()}`) }
-export async function getLibrary() { if (DEMO) return demoRead().library; return request('/library') }
+export async function getLibrary() { if (isGuest()) return []; if (DEMO) return demoRead().library; return request('/library') }
 export async function getDashboard() {
   if (DEMO) {
     const library = demoRead().library
@@ -68,8 +93,9 @@ export async function getDashboard() {
   }
   return request(`/dashboard?showAdult=${showAdultContent()}`)
 }
-export async function addToLibrary(manga, progress = {}) { const item = { ...manga, currentChapter: Number(progress.currentChapter || 0), status: progress.status || 'Plan to Read', rating: progress.rating ? Number(progress.rating) : null, lastUpdated: new Date().toISOString() }; const total = manga?.chapters ?? null; if (total !== null && Number.isFinite(Number(total)) && item.currentChapter > Number(total)) throw new Error(`Chapter cannot exceed the known total of ${total}.`); if (DEMO) { const data = demoRead(); data.library = [...data.library.filter((x) => x.anilistId !== manga.anilistId), item]; demoWrite(data); return item }; return request('/library', { method: 'POST', body: JSON.stringify({ anilistId: manga.anilistId, manga, ...progress }) }) }
-export async function updateLibrary(id, progress) { if (DEMO) { const data = demoRead(); const item = data.library.find((x) => x.anilistId === Number(id)); const total = Number(item?.chapters ?? item?.totalChapters); if (Number.isFinite(total) && Number(progress.currentChapter) > total) throw new Error(`Chapter cannot exceed the known total of ${total}.`); Object.assign(item, progress, { lastUpdated: new Date().toISOString() }); demoWrite(data); return item }; return request(`/library/${id}`, { method: 'PUT', body: JSON.stringify(progress) }) }
-export async function removeFromLibrary(id) { if (DEMO) { const data = demoRead(); data.library = data.library.filter((x) => x.anilistId !== Number(id)); demoWrite(data); return }; return request(`/library/${id}`, { method: 'DELETE' }) }
-export async function clearLibrary() { if (DEMO) { demoWrite({ ...demoRead(), library: [] }); return }; return request('/library', { method: 'DELETE' }) }
+function requireAccount() { if (isGuest()) throw new Error('Create an account or sign in to track reading progress.') }
+export async function addToLibrary(manga, progress = {}) { requireAccount(); const item = { ...manga, currentChapter: Number(progress.currentChapter || 0), status: progress.status || 'Plan to Read', rating: progress.rating ? Number(progress.rating) : null, lastUpdated: new Date().toISOString() }; const total = manga?.chapters ?? null; if (total !== null && Number.isFinite(Number(total)) && item.currentChapter > Number(total)) throw new Error(`Chapter cannot exceed the known total of ${total}.`); if (DEMO) { const data = demoRead(); data.library = [...data.library.filter((x) => x.anilistId !== manga.anilistId), item]; demoWrite(data); return item }; return request('/library', { method: 'POST', body: JSON.stringify({ anilistId: manga.anilistId, manga, ...progress }) }) }
+export async function updateLibrary(id, progress) { requireAccount(); if (DEMO) { const data = demoRead(); const item = data.library.find((x) => x.anilistId === Number(id)); const total = Number(item?.chapters ?? item?.totalChapters); if (Number.isFinite(total) && Number(progress.currentChapter) > total) throw new Error(`Chapter cannot exceed the known total of ${total}.`); Object.assign(item, progress, { lastUpdated: new Date().toISOString() }); demoWrite(data); return item }; return request(`/library/${id}`, { method: 'PUT', body: JSON.stringify(progress) }) }
+export async function removeFromLibrary(id) { requireAccount(); if (DEMO) { const data = demoRead(); data.library = data.library.filter((x) => x.anilistId !== Number(id)); demoWrite(data); return }; return request(`/library/${id}`, { method: 'DELETE' }) }
+export async function clearLibrary() { requireAccount(); if (DEMO) { demoWrite({ ...demoRead(), library: [] }); return }; return request('/library', { method: 'DELETE' }) }
 export { clearSession }

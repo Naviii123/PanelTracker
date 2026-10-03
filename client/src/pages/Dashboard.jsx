@@ -24,6 +24,7 @@ function TrackingRow({ item }) {
 
 export default function Dashboard() {
   const location = useLocation()
+  const guest = currentUser()?.isGuest
   const searchInput = useRef(null)
   const [data, setData] = useState(null)
   const [query, setQuery] = useState('')
@@ -34,8 +35,9 @@ export default function Dashboard() {
   const [pageInfo, setPageInfo] = useState(null)
 
   useEffect(() => {
+    if (guest) return
     getDashboard().then(setData).catch((caught) => setError(caught.message))
-  }, [])
+  }, [guest])
 
   useEffect(() => {
     if (location.hash === '#search') {
@@ -64,8 +66,8 @@ export default function Dashboard() {
     await loadSearchPage(1)
   }
 
-  if (!data) return <Loading error={error} />
-  const genreMax = Math.max(...data.genres.map(([, count]) => count), 1)
+  if (!guest && !data) return <Loading error={error} />
+  const genreMax = data ? Math.max(...data.genres.map(([, count]) => count), 1) : 1
   const displayDate = new Intl.DateTimeFormat(undefined, {
     weekday: 'long',
     year: 'numeric',
@@ -76,9 +78,9 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader
-        eyebrow={displayDate}
-        title={`Good evening, ${currentUser()?.username || 'reader'}.`}
-        action={<Link className="button button-primary" to="/library">Open library <span>↗</span></Link>}
+        eyebrow={guest ? 'GUEST BROWSING' : displayDate}
+        title={guest ? 'Explore manga.' : `Good evening, ${currentUser()?.username || 'reader'}.`}
+        action={guest ? <Link className="button button-primary" to="/register">Create account</Link> : <Link className="button button-primary" to="/library">Open library <span>↗</span></Link>}
       />
       <section className="search-panel" id="search">
         <form onSubmit={handleSearch} className="search-form">
@@ -94,14 +96,15 @@ export default function Dashboard() {
         {searched && results.length === 0 && !error && <p className="search-empty">No titles found. Try another title or spelling.</p>}
       </section>
       {error && <p className="error-message">{error}</p>}
-      <div className="stats-grid">
+      {guest && <p className="guest-browse-note">Search the catalog and open any title for details. Reading logs and personal library features require an account.</p>}
+      {!guest && <div className="stats-grid">
         <StatCard label="Tracked titles" value={data.stats.tracked} />
         <StatCard label="Reading now" value={data.stats.Reading} tone="mint" />
         <StatCard label="Completed" value={data.stats.Completed} tone="yellow" />
         <StatCard label="Plan to read" value={data.stats['Plan to Read']} tone="pink" />
         <StatCard label="Dropped" value={data.stats.Dropped} />
-      </div>
-      <div className="dashboard-grid">
+      </div>}
+      {!guest && <div className="dashboard-grid">
         <section>
           <div className="section-heading"><div><span className="eyebrow">YOUR CURRENT ROTATION</span><h2>Currently tracking</h2></div><Link to="/library">See all ↗</Link></div>
           <div className="tracking-list">{data.tracking.length ? data.tracking.map((item) => <TrackingRow key={item.anilistId} item={item} />) : <EmptyState text="Your reading rotation is waiting for its first title." />}</div>
@@ -113,7 +116,7 @@ export default function Dashboard() {
           </section>
           <section className="panel recommendations"><div className="section-heading"><div><h2>For your shelf</h2><span className="eyebrow recommendation-reason">{data.recommendationReason || 'Popular picks'}</span></div><span aria-hidden="true">✦</span></div>{data.recommendations.length ? data.recommendations.slice(0, 3).map((item) => <MangaPoster key={item.anilistId} item={item} compact />) : <p className="muted-copy">Recommendations are temporarily unavailable.</p>}</section>
         </aside>
-      </div>
+      </div>}
     </>
   )
 }

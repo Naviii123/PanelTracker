@@ -8,15 +8,16 @@ import Library from './pages/Library.jsx'
 import Settings from './pages/Settings.jsx'
 
 function ProtectedRoutes() {
-  if (!currentUser()) return <Navigate to="/login" replace />
+  const user = currentUser()
+  if (!user) return <Navigate to="/login" replace />
 
   return (
     <AppShell>
       <Routes>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/library" element={<Library />} />
         <Route path="/manga/:anilistId" element={<Detail />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/library" element={user.isGuest ? <Navigate to="/dashboard" replace /> : <Library />} />
+        <Route path="/settings" element={user.isGuest ? <Navigate to="/dashboard" replace /> : <Settings />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AppShell>
