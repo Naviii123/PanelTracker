@@ -2,11 +2,11 @@
 
 [![Made with AI](https://img.shields.io/badge/Made_with-AI_assistance-blue)](AI-USAGE.md)
 
-PanelTracker is a full-stack web application for discovering, organizing, and tracking manga, manhwa, and manhua. It gives readers one private place to search the AniList catalog, save titles, record chapter progress, choose a reading status, add a personal rating, and review collection statistics. The interface follows the supplied PanelTracker HIFI design system, supports persistent light/dark appearance, and distinguishes titles that are Coming Soon or Releasing.
+PanelTracker is a full-stack web application for discovering, organizing, and tracking manga, manhwa, and manhua. It gives readers one place to search the AniList catalog, save titles, record chapter progress, choose a reading status, add a personal rating, and review collection statistics. The interface follows the supplied PanelTracker HIFI design system, supports persistent appearance preferences, and distinguishes titles that are Coming Soon or Releasing.
 
-Series details also include AniList-provided characters, staff roles, and related recommendations when that information is available. Mobile users get a compact bottom navigation and responsive detail sections while desktop keeps the sidebar layout.
+In connected mode, series details also include AniList-provided characters, staff roles, and related recommendations when that information is available. Mobile users get a compact bottom navigation and responsive detail sections while desktop keeps the sidebar layout.
 
-The application is designed for readers who want a tracking and organization tool rather than an online reading service. It does not host manga chapters or scrape manga websites.
+The application is designed for readers who want a tracking and organization tool rather than an online reading service. It does not host manga chapters or scrape manga websites. A local demo mode uses simulated catalog data and browser storage; connected mode uses the Express API, AniList, and PostgreSQL.
 
 ## Setup and installation
 
@@ -86,6 +86,8 @@ VITE_API_BASE_URL=http://localhost:5000/api
 VITE_DEMO_MODE=true
 ```
 
+Only the exact value `true` enables the simulated backend. Setting `VITE_DEMO_MODE=false` (or leaving it unset) makes the client call `VITE_API_BASE_URL`.
+
 `VITE_` variables are compiled into the browser and are public. Never place `DATABASE_URL`, `JWT_SECRET`, or `JWT_REFRESH_SECRET` in the client environment file.
 
 ### Supabase and database setup
@@ -109,7 +111,7 @@ The schema creates these tables:
 - `progress`: user-specific chapter, status, and rating records
 - `refresh_tokens`: hashed refresh tokens with expiry and revocation fields
 
-There is no required demo seed. Demo data is created in the browser only when `VITE_DEMO_MODE=true`.
+There is no required demo seed. The demo adapter creates search results and recommendations locally; the demo user's saved library is kept in that browser's `localStorage`.
 
 ## How to run it
 
@@ -119,12 +121,13 @@ Demo mode is the fastest way to view the interface without a database:
 
 ```powershell
 cd client
+Copy-Item .env.example .env
 npm run dev
 ```
 
-Open [http://localhost:5173/login](http://localhost:5173/login). Use any valid-looking email and any password. Registration also accepts demo values. The demo banner identifies the mode, and demo account/library data is stored in that browser's localStorage.
+Open [http://localhost:5173/login](http://localhost:5173/login). To try library features, sign in with an email accepted by the browser's email field and any non-empty password, or register a demo account. The demo banner identifies the simulated backend. Search results and recommendations are demo fixtures, and the demo account and library stay in that browser's `localStorage`; they are not sent to the API or database. The login page also has a separate **Browse as guest** option: guest access is read-only and expires after 48 hours.
 
-Restart Vite after changing `.env` because Vite reads environment variables when it starts.
+Set `VITE_DEMO_MODE=true` in `client/.env`. Restart Vite after changing `.env` because Vite reads environment variables when it starts. If the flag is missing or not exactly `true`, the client uses the real API instead.
 
 ### Real full-stack mode
 
@@ -176,37 +179,38 @@ The build is written to `client/dist`. Deploy that static output to a frontend h
 
 ### Primary flow
 
-1. Open `/register` and create an account, or use demo mode with any valid-looking values.
-2. Sign in at `/login`.
-3. Use the dashboard search field to search AniList by title.
-4. Open a result at `/manga/:anilistId`.
-5. Review the title, cover, synopsis, genres, author, type, chapters, volumes, score, and publishing details.
-6. Add the title to the library with a status, current chapter, and optional rating from 1 to 10.
-7. Open `/library` to search saved titles and filter by status. Statuses include `Coming Soon`, `Releasing`, `Reading`, `Completed`, `Plan to Read`, `On Hold`, and `Dropped`.
-8. Update progress, status, or rating from a library card or the series detail page.
-9. Open `/settings` to switch between light and dark appearance, view account/app mode information, clear the current user's library, or log out.
-10. Use the dashboard to see tracked-title statistics, currently reading titles, genre counts, and recommendations.
+1. Create an account in connected mode, sign in with demo values, or choose read-only guest browsing.
+2. Search from the dashboard. Connected mode queries AniList; demo mode displays local fixtures.
+3. Open a result at `/manga/:anilistId` and review its details.
+4. Add the title to the library with a status, current chapter, and optional rating from 1 to 10.
+5. Open `/library` to search saved titles and filter by status: `Coming Soon`, `Releasing`, `Reading`, `Completed`, `Plan to Read`, `On Hold`, or `Dropped`.
+6. Update progress, status, or rating from a library card or the series detail page.
+7. Open `/settings` to change appearance and content preferences, view account/app mode information, clear the current user's library, or log out.
+8. Use the dashboard to review tracked-title statistics, currently reading titles, genre counts, and recommendations. In connected mode, dashboard recommendations use popular AniList titles matched to your most common saved genres and exclude titles already in your library; with no saved genres, the dashboard shows popular picks. Demo mode uses local sample recommendations.
 
-The dashboard date is generated from the current local date. Settings supports Light, Dark, or System appearance, saved Indigo, Teal, or Rose accent colors, and a persistent Large text option. AniList publication states map to `Coming Soon` and `Releasing` when appropriate. When AniList provides a chapter total, the detail form provides a bounded chapter selector and the backend rejects values above that total. When the total is unknown, the app uses a manual non-negative chapter input and displays `Chapter X / ?`; this remains available for Releasing titles. Detail pages display AniList's optional banner image on desktop when available; the existing layout remains the fallback and banners are hidden on smaller screens.
+The dashboard date is generated from the current local date. Settings supports Light, Dark, or System appearance, Indigo, Teal, or Rose accent colors, a Large text option, and an adult-content preference. AniList publication states map to `Coming Soon` and `Releasing` when appropriate. When AniList provides a chapter total, the detail form provides a bounded chapter selector and the backend rejects values above that total. When the total is unknown, the app uses a manual non-negative chapter input and displays `Chapter X / ?`; this remains available for Releasing titles. Detail pages display AniList's optional banner image on desktop when available; the existing layout remains the fallback and banners are hidden on smaller screens.
 
-On the series detail page, Characters and Staff use live AniList data and show an image fallback or a short empty state when data is missing. Related recommendations link to their own series detail pages. On mobile, character and recommendation sections can be swiped horizontally; staff and library rows adapt to the screen width.
+In connected mode, Characters, Staff, and related recommendations on series detail pages use AniList data and show image or empty-state fallbacks when information is missing. Demo mode shows empty states for this detail data. Related titles link to their own detail pages. On mobile, character and recommendation sections can be swiped horizontally; staff and library rows adapt to the screen width.
 
 ### Adult-content preference
 
-Settings includes **Show Adult Content**, off by default. PanelTracker requests AniList's `isAdult` field and excludes entries marked adult from search and automatically fetched recommendations while the preference is off. Enabling it allows those marked entries alongside other results. Existing saved library records are not deleted or changed when this preference changes. AniList's classification is not guaranteed to catch every adult or inappropriate entry; Ecchi entries are not classified as adult by AniList. This setting is a content preference, not complete NSFW protection.
+Settings includes **Show Adult Content**, off by default. In connected mode, PanelTracker requests AniList's `isAdult` field and excludes entries marked adult from search and automatically fetched recommendations while the preference is off. Enabling it allows those marked entries alongside other results. Demo fixtures do not include AniList adult classifications, so this preference applies to connected catalog results. Existing saved library records are not deleted or changed when this preference changes. AniList's classification is not guaranteed to catch every adult or inappropriate entry; Ecchi entries are not classified as adult by AniList. This setting is a content preference, not complete NSFW protection.
 
 ### Main REST API
+
+`/healthz` and `/readyz` are unauthenticated service health checks; application API routes use the `/api` prefix.
 
 All application endpoints use the `/api` prefix. Protected endpoints require an access token in the `Authorization: Bearer <token>` header.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
+| `POST` | `/api/auth/guest` | Start a read-only guest session that expires after 48 hours |
 | `POST` | `/api/auth/register` | Validate and create a user, hash the password, and issue tokens |
 | `POST` | `/api/auth/login` | Authenticate by email/password and issue tokens |
 | `POST` | `/api/auth/refresh` | Rotate a valid refresh token and issue a new access token |
 | `POST` | `/api/auth/logout` | Revoke a stored refresh-token hash |
 | `GET` | `/api/auth/me` | Return the authenticated user |
-| `GET` | `/api/dashboard` | Return user statistics, tracking rows, genres, and recommendations |
+| `GET` | `/api/dashboard?showAdult=...` | Return user statistics, tracking rows, genres, and recommendations |
 | `GET` | `/api/library` | Return only the authenticated user's library |
 | `GET` | `/api/library/:anilistId` | Return one library record belonging to the authenticated user |
 | `POST` | `/api/library` | Add or update a manga and its progress |
@@ -226,7 +230,7 @@ PanelTracker/
 ├── client/
 │   ├── public/assets/
 │   │   ├── images/          Auth artwork and reusable images
-│   │   ├── logo/            PanelTracker logo placeholder
+│   │   ├── logo/            PanelTracker logo and legacy placeholder
 │   │   └── placeholders/    Fallback manga-cover artwork
 │   ├── src/
 │   │   ├── api/             Real API client and demo adapter logic
@@ -244,10 +248,14 @@ PanelTracker/
 │   ├── .env.example
 │   └── package.json
 ├── docs/
-│   ├── assets/             Documentation screenshots
+│   ├── 01-proposal.md
+│   ├── 02-mockup.md
 │   ├── 03-design-system.md
+│   ├── 04-weekly-reports.md
+│   ├── 05-demo-video.md
 │   ├── 06-security-and-privacy.md
-│   └── REPORT.md
+│   ├── assets/
+│   └── presentation/
 ├── AI-USAGE.md
 ├── SECURITY-CHECKLIST.md
 └── README.md
@@ -255,9 +263,13 @@ PanelTracker/
 
 ## Screenshots
 
-The screenshot below shows the current sign-in screen, captured in demo mode:
+The screenshots below show the current dashboard and library interface in demo mode. All visible account and title information is fictional sample data; it is not from a real user, a live AniList response, or a database.
 
-![Current PanelTracker sign-in screen](docs/assets/paneltracker-login.png)
+**Dashboard:** search, collection statistics, reading progress, genre counts, and recommendations.
+![PanelTracker dashboard in demo mode with fictional sample data](docs/assets/paneltracker-dashboard-demo.png)
+
+**Library:** status filters, saved-title progress, ratings, and the controls for updating or removing an entry.
+![PanelTracker library in demo mode with fictional sample data](docs/assets/paneltracker-library-demo.png)
 
 The visual direction follows the supplied PanelTracker design system: `#6366F1` primary actions, `#0F172A` ink, `#475569` muted text, `#F8FAFC` surfaces, `#E2E8F0` borders, Inter typography, and 8px spacing increments.
 
@@ -265,9 +277,9 @@ The visual direction follows the supplied PanelTracker design system: `#6366F1` 
 
 - The real Supabase flow cannot be fully exercised until a user supplies a valid local `DATABASE_URL` and runs the schema.
 - There are no automated frontend or backend test suites yet; verification currently uses production builds, syntax checks, and manual browser flows.
-- The Settings page is intentionally limited to account display, app-mode information, library clearing, and logout. Profile editing and password reset are future work.
+- The Settings page supports appearance and content preferences, account display, app-mode information, library clearing, and logout. Profile editing and password reset are future work.
 - Search currently focuses on title text. Type and genre filters can be added later through AniList query variables.
-- Recommendations use a simple AniList popularity fallback rather than personalized ranking.
+- Connected dashboard recommendations use AniList popularity with genre matching and saved-title exclusions; this is a lightweight heuristic rather than a personalized recommendation model.
 - Demo mode is intentionally local to one browser and is not a substitute for production authentication or Supabase storage.
 
 ## AI use

@@ -18,8 +18,8 @@ repository, so it is versioned alongside the thing it describes.
 | [06-security-and-privacy.md](06-security-and-privacy.md) | what you checked before making this public | before your first push |
 | [../SECURITY-CHECKLIST.md](../SECURITY-CHECKLIST.md) | completed security checklist | week 2 and before publishing |
 
-Put documentation images in `assets/`. The main README currently references
-`assets/paneltracker-login.png`, a screenshot captured from the running client.
+Put documentation images in `assets/`. The main README references the dashboard
+and library demo screenshots stored there.
 
 **Write these as you go.** A weekly report written on the last day is obvious to
 read and worth very little.
